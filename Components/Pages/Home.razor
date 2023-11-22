@@ -1,7 +1,32 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@using Services
+@inject ISemanticSearchService _semanticService
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h2>Type your question here: </h2>
 
-Welcome to your new app.
+<InputText @bind-Value=userInput />
+<button class="btn btn-primary" @onclick="GetResponse">Go!</button>
+
+<p>Answer:@outputText</p>
+
+<!--<p>Current Text: @currentText</p>
+
+<button class="btn btn-primary" @onclick="GetCurrentText">Click me to get the current Text</button>-->
+
+
+@code{
+
+	private string? currentText;
+	private string? userInput;
+	private string? outputText;
+
+	private async Task GetResponse()
+	{
+		if(!string.IsNullOrEmpty(userInput))
+			outputText = await _semanticService.GetOpenAIResponse(userInput);
+	}
+
+}

@@ -17,7 +17,7 @@ builder.Configuration.AddJsonFile($"appsettings.{Environment.GetEnvironmentVaria
     .AddUserSecrets<Program>(); 
 
 
-// Add services to the container.
+// register services
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -31,7 +31,7 @@ builder.Services.AddSingleton(provider =>
     return client;
 });
 
-builder.Services.AddSingleton<ISemanticSearchService>();
+builder.Services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
 
 
 var app = builder.Build();

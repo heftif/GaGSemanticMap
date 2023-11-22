@@ -1,6 +1,6 @@
-﻿namespace GaGSemanticMap.Services
+﻿namespace GaGSemanticMap.Services;
+
+public interface ISemanticSearchService
 {
-    public interface ISemanticSearchService
-    {
-    }
+    Task<string> GetOpenAIResponse(string userInput);
 }
