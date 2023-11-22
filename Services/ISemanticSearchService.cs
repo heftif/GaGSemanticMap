@@ -1,6 +1,9 @@
-﻿namespace GaGSemanticMap.Services;
+﻿using Vector = Pgvector.Vector;
+
+namespace GaGSemanticMap.Services;
 
 public interface ISemanticSearchService
 {
-    Task<string> GetOpenAIResponse(string userInput);
+    Task<string> GetOpenAIResponseAsync(string userInput);
+	Task GetEventsBySemanticRelevanceAsync(string userInput);
 }

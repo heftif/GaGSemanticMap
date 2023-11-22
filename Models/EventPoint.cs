@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
+using Vector = Pgvector.Vector;
 
 namespace GaGSemanticMap.Models;
 
@@ -12,16 +14,24 @@ public class EventPoint
 
 	public Location Location;
 
+	public Vector Embedding;
+
 	public static EventPoint FromCsv(string csvLine)
 	{
-		//todo: implement a warning if we have more than 4 entries given back
 		string[] values = csvLine.Split(';');
+
+		if(values.Length > 5 ) 
+		{
+			Console.WriteLine("Warning: found more than 4 cells for given row!");
+
+		}
 
 		var ep = new EventPoint();
 		ep.Location = Location.FromCsv(values[0]);
 		ep.EpisodeName = values[1];
 		ep.EpsiodeLink = values[2];
 		ep.Description = values[3];
+		ep.Embedding = new Vector(values[4]);
 
 		return ep;
 	}
