@@ -10,23 +10,32 @@
 <InputText @bind-Value=userInput />
 <button class="btn btn-primary" @onclick="GetResponse">Go!</button>
 
-<p>Answer:@outputText</p>
+<h3>Chat: </h3>
+@foreach(var outputText in outputTexts)
+{
+	<p>@outputText</p>
+}
 
-<!--<p>Current Text: @currentText</p>
-
-<button class="btn btn-primary" @onclick="GetCurrentText">Click me to get the current Text</button>-->
 
 
 @code{
 
 	private string? currentText;
 	private string? userInput;
-	private string? outputText;
+	private List<string> outputTexts = new List<string>();
 
 	private async Task GetResponse()
 	{
+
 		if(!string.IsNullOrEmpty(userInput))
-			outputText = await _semanticService.GetOpenAIResponse(userInput);
+		{
+			outputTexts.Add($"User: {userInput}");
+
+			var response = await _semanticService.GetOpenAIResponse(userInput);
+
+			outputTexts.Add($"Bot: {response}");
+		}
+		
 	}
 
 }

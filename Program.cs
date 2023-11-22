@@ -11,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 Env.Load();
 
+//todo: implement a logger
+
 //add configs
 builder.Configuration.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", true, true)
     .AddEnvironmentVariables()
@@ -21,7 +23,7 @@ builder.Configuration.AddJsonFile($"appsettings.{Environment.GetEnvironmentVaria
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddSingleton(provider =>
+/*builder.Services.AddSingleton(provider =>
 {
   
     OpenAIClient client = Environment.GetEnvironmentVariable("TYPE") == "azure"
@@ -29,7 +31,7 @@ builder.Services.AddSingleton(provider =>
         : new OpenAIClient(Environment.GetEnvironmentVariable("KEY"));
 
     return client;
-});
+});*/
 
 builder.Services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
 
