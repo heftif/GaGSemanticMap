@@ -6,6 +6,15 @@ using OfficeOpenXml;
 using System.Runtime.ConstrainedExecution;
 using System.Net.Http.Headers;
 using CreateDataEmbeddings;
+using UMAP;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+using System.Drawing;
+using MessagePack;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Text.RegularExpressions;
 
 public class Programm
 {
@@ -63,14 +72,23 @@ public class Programm
 		{
 			var worksheet = package.Workbook.Worksheets[0];
 
-			
+			string pattern = @"(GAG\d{3}:|ZS\d{2,3}:)";
 
 			for (int row = 2; row <= worksheet.Dimension.Rows; row++)
 			{
+				var epsiodeNumber = "";
+
+				var match = Regex.Matches(worksheet.Cells[row, 2].Text, pattern).FirstOrDefault();
+				if(match != null)
+				{
+					epsiodeNumber = match.Value;
+				}
+
 				var ep = new EventPoint
 				{
 					EpisodeName = worksheet.Cells[row, 2].Text,
-					Embedding = new Vector(worksheet.Cells[row, 5].Text)
+					Embedding = new Vector(worksheet.Cells[row, 5].Text),
+					EpisodeNumber = epsiodeNumber,
 				};
 
 				eventPoints.Add(ep);
@@ -100,7 +118,74 @@ public class Programm
 			Console.WriteLine($" {i}. Event: {e.Item.EpisodeName}, Distance {e.Distance}");
 		}
 
+
+		//visualise embeddings with UMap
+		VisualiseEmbeddings(eventPoints);
 	}
+
+	static void VisualiseEmbeddings(List<EventPoint> eventPoints)
+	{
+		//see https://github.com/curiosity-ai/umap-sharp for reference
+
+		// Define Vectors
+		float[][] vectors = eventPoints.Select(x => x.Embedding.ToArray()).ToArray();
+
+		// Calculate embedding vectors using the default configuration
+		var umap = new Umap(distance: Umap.DistanceFunctions.Cosine);
+		var numberOfEpochs = umap.InitializeFit(vectors);
+		for (var i = 0; i < numberOfEpochs; i++)
+			umap.Step();
+
+		// This will be a float[][] where each nested array has two elements
+		var embeddings = umap.GetEmbedding()
+			.Select(vector => new { X = vector[0], Y = vector[1] })
+			.ToArray();
+
+		// Fit the vectors to a 0-1 range (this isn't necessary if feeding these values down from a server to a browser to draw with Plotly because ronend because Plotly scales the axes to the data)
+		var minX = embeddings.Min(vector => vector.X);
+		var rangeX = embeddings.Max(vector => vector.X) - minX;
+		var minY = embeddings.Min(vector => vector.Y);
+		var rangeY = embeddings.Max(vector => vector.Y) - minY;
+
+
+		var scaledEmbeddings = embeddings
+			.Select(vector => new { X = (vector.X - minX) / rangeX, Y = (vector.Y - minY) / rangeY })
+			.ToArray();
+
+		const int width = 2400;
+		const int height = 1800;
+		using (var bitmap = new Bitmap(width, height))
+		{
+			using (var g = Graphics.FromImage(bitmap))
+			{
+				g.FillRectangle(Brushes.LightBlue, 0, 0, width, height);
+				g.SmoothingMode = SmoothingMode.HighQuality;
+				g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+				g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+				g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+				using (var font = new Font("Tahoma", 10))
+				{
+					foreach (var (vector, uid) in scaledEmbeddings.Zip(eventPoints.Select(x => x.EpisodeName), (vector, entry) => (vector, entry)))
+					{
+						if (uid != "GAG325: Der Große Smog von 1952" 
+							&& uid !="GAG09: Wer den englischen Parlamentsbrand auf dem Kerbholz hat"
+							&& uid != "GAG355: Der Englische Schweiß"
+							&& uid != "GAG94: Wer zittert nicht vor den Mohocks?")
+						{
+							g.DrawString(uid, font, Brushes.Black, vector.X * width, vector.Y * height);
+						}
+						else
+						{
+							g.DrawString(uid, font, Brushes.Red, vector.X * width, vector.Y * height);
+						}
+					}
+				}
+			}
+			bitmap.Save("Output-Label.png");
+		}
+
+	}
+
 
 
 	static async Task<Vector> CreateEmbeddingAsync(OpenAIClient client, string description, string embeddingModel, string episodeName, int retry)
@@ -151,4 +236,7 @@ public class Programm
 
 		return dot / (Math.Sqrt(mag1) * Math.Sqrt(mag2));
 	}
+
 }
+
+
