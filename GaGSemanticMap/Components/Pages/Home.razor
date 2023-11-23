@@ -1,0 +1,55 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject ISemanticSearchService _semanticService
+
+<PageTitle>Home</PageTitle>
+
+<h2>Type your question here: </h2>
+
+<InputText @bind-Value=userInput @onkeydown="OnEnter" />
+<button type="submit" class="btn btn-primary" @onclick="GetEmbeddings" tabindex="0">Go!</button>
+
+<h3>Chat: </h3>
+@foreach(var outputText in outputTexts)
+{
+	<p>@outputText</p>
+}
+
+
+
+@code{
+
+	private string? currentText;
+	private string? userInput;
+	private List<string> outputTexts = new List<string>();
+
+	private async Task GetEmbeddings()
+	{
+		if(!string.IsNullOrEmpty(userInput))
+		{
+			await _semanticService.GetEventsBySemanticRelevanceAsync(userInput);
+		}
+	}
+
+	private async Task GetResponse()
+	{
+		if(!string.IsNullOrEmpty(userInput))
+		{
+			outputTexts.Add($"User: {userInput}");
+
+			var response = await _semanticService.GetOpenAIResponseAsync(userInput);
+
+			outputTexts.Add($"Bot: {response}");
+		}
+	}
+
+	private async Task OnEnter(KeyboardEventArgs e)
+	{
+		if (e.Code == "Enter" || e.Code == "NumpadEnter")
+		{
+			await GetEmbeddings();
+			//await GetResponse();
+		}
+	}
+
+}
