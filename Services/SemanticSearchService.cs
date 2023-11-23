@@ -93,9 +93,8 @@ public class SemanticSearchService : ISemanticSearchService
 
 		var eventsWithDistance = eventPoints
 				.Select(c => new { Item = c, Distance = GetCosineSimilarity(vector.ToArray(), c.Embedding.ToArray())})
-				.OrderBy(c => c.Distance)
+				.OrderByDescending(c => c.Distance)
 				.ToList();
-
 
 		//it should be this, but we can only do this with database backing, so needs to wait
 		/*var eventsWithDistance = eventPoints
@@ -103,11 +102,11 @@ public class SemanticSearchService : ISemanticSearchService
 		        .OrderBy(c => c.Distance)
 		        .ToList();*/
 
-		//print the 10 closest items
-		for(int i = 0; i < 10; i++)
+		//print the 20 closest items
+		for (int i = 0; i < 20; i++)
 		{
 			var e = eventsWithDistance[i];
-			Console.WriteLine($"Event: {e.Item.EpisodeName}, Description: {e.Item.Description}");
+			Console.WriteLine($" {i}. Event: {e.Item.EpisodeName}, Distance: {e.Distance}");
 		}
 
 	}
