@@ -6,6 +6,7 @@ using GaGSemanticMap;
 using Azure.AI.OpenAI;
 using Azure;
 using GaGSemanticMap.Services;
+using GaGSemanticMap.Skills;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +38,8 @@ builder.Services.AddLogging();
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 builder.Services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
+builder.Services.AddSingleton<IKernelService, KernelService>();
+builder.Services.AddSingleton<IOutputSkill, OutputSkill>();
 
 
 var app = builder.Build();

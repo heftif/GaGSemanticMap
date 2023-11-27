@@ -1,6 +1,7 @@
 ﻿@page "/"
 @rendermode InteractiveServer
 @inject ISemanticSearchService _semanticService
+@inject IKernelService _kernelService;
 
 <PageTitle>Home</PageTitle>
 
@@ -10,7 +11,7 @@
 <!-- ensure that UserInput is updated before onkeyup is triggered to get the text-->
 <input @bind-value="UserInput" @bind-value:event="oninput" @onkeyup="OnEnter" />
 
-<button class="btn btn-primary" @onclick="GetEmbeddings" tabindex="0">Go!</button>
+<button class="btn btn-primary" @onclick="TriggerPipeline" tabindex="0">Go!</button>
 
 <h3>Chat: </h3>
 @foreach(var outputText in outputTexts)
@@ -24,6 +25,16 @@
 
 	public string? UserInput { get; set; }
 	private List<string> outputTexts = new List<string>();
+
+	private async Task TriggerPipeline()
+	{
+		if (!string.IsNullOrEmpty(UserInput))
+		{
+			outputTexts.Add($"User: {UserInput}");
+
+			await _kernelService.StartAsync(UserInput);
+		}
+	}
 
 	private async Task GetEmbeddings()
 	{
@@ -51,7 +62,8 @@
 	{
 		if (e.Code == "Enter" || e.Code == "NumpadEnter")
 		{
-			await GetEmbeddings();
+			await TriggerPipeline();
+			//await GetEmbeddings();
 			//await GetResponse();
 		}
 	}

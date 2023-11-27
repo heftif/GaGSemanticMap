@@ -3,6 +3,7 @@ using Azure.AI.OpenAI;
 using GaGSemanticMap.Models;
 using Vector = Pgvector.Vector;
 
+
 namespace GaGSemanticMap.Services;
 
 public class SemanticSearchService : ISemanticSearchService
