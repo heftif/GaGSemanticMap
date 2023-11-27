@@ -92,8 +92,8 @@ public class SemanticSearchService : ISemanticSearchService
 
 
 		var eventsWithDistance = eventPoints
-				.Select(c => new { Item = c, Distance = GetCosineSimilarity(vector.ToArray(), c.Embedding.ToArray())})
-				.OrderByDescending(c => c.Distance)
+				.Select(c => new { Item = c, Distance = GetCosineDistance(vector.ToArray(), c.Embedding.ToArray())})
+				.OrderBy(c => c.Distance)
 				.ToList();
 
 		//it should be this, but we can only do this with database backing, so needs to wait
@@ -102,16 +102,30 @@ public class SemanticSearchService : ISemanticSearchService
 		        .OrderBy(c => c.Distance)
 		        .ToList();*/
 
+		var maxDistance = eventsWithDistance.Select(x => x.Distance).Max();
+		var minDistance = eventsWithDistance.Select(x => x.Distance).Min();
+
+		//stretch events to range from 0 to 1, to make it easier to find a cutoff
+		var normalizedEvents = eventsWithDistance
+			.Select(c => new { Item = c.Item, Distance = c.Distance, NormDistance = NormalizeDistance(c.Distance, minDistance, maxDistance) })
+			.ToList();
+
 		//print the 20 closest items
 		for (int i = 0; i < 20; i++)
 		{
-			var e = eventsWithDistance[i];
-			Console.WriteLine($" {i}. Event: {e.Item.EpisodeName}, Distance: {e.Distance}");
+			var e = normalizedEvents[i];
+			Console.WriteLine($" {i}. Event: {e.Item.EpisodeName}, Distance: {e.NormDistance}");
 		}
 
 	}
 
-	public double GetCosineSimilarity(float[] V1, float[] V2)
+	private double NormalizeDistance(double value, double min, double max)
+	{
+		//linearly extrapolate to range between 0 to 1
+		return (value- min) / (max - min);
+	}
+
+	private double GetCosineDistance(float[] V1, float[] V2)
 	{
 		int N = 0;
 
@@ -127,6 +141,6 @@ public class SemanticSearchService : ISemanticSearchService
 			mag2 += Math.Pow(V2[n], 2);
 		}
 
-		return dot / (Math.Sqrt(mag1) * Math.Sqrt(mag2));
+		return (1 - (dot / (Math.Sqrt(mag1) * Math.Sqrt(mag2))));
 	}
 }

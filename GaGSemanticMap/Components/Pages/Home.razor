@@ -6,8 +6,11 @@
 
 <h2>Type your question here: </h2>
 
-<InputText @bind-Value=userInput @onkeydown="OnEnter" />
-<button type="submit" class="btn btn-primary" @onclick="GetEmbeddings" tabindex="0">Go!</button>
+
+<!-- ensure that UserInput is updated before onkeyup is triggered to get the text-->
+<input @bind-value="UserInput" @bind-value:event="oninput" @onkeyup="OnEnter" />
+
+<button class="btn btn-primary" @onclick="GetEmbeddings" tabindex="0">Go!</button>
 
 <h3>Chat: </h3>
 @foreach(var outputText in outputTexts)
@@ -19,25 +22,26 @@
 
 @code{
 
-	private string? currentText;
-	private string? userInput;
+	public string? UserInput { get; set; }
 	private List<string> outputTexts = new List<string>();
 
 	private async Task GetEmbeddings()
 	{
-		if(!string.IsNullOrEmpty(userInput))
+		if(!string.IsNullOrEmpty(UserInput))
 		{
-			await _semanticService.GetEventsBySemanticRelevanceAsync(userInput);
+			outputTexts.Add($"User: {UserInput}");
+
+			await _semanticService.GetEventsBySemanticRelevanceAsync(UserInput);
 		}
 	}
 
 	private async Task GetResponse()
 	{
-		if(!string.IsNullOrEmpty(userInput))
+		if(!string.IsNullOrEmpty(UserInput))
 		{
-			outputTexts.Add($"User: {userInput}");
+			outputTexts.Add($"User: {UserInput}");
 
-			var response = await _semanticService.GetOpenAIResponseAsync(userInput);
+			var response = await _semanticService.GetOpenAIResponseAsync(UserInput);
 
 			outputTexts.Add($"Bot: {response}");
 		}
