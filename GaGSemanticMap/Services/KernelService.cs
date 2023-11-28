@@ -12,28 +12,29 @@ namespace GaGSemanticMap.Services
 	{
 		private readonly IKernel? kernel;
 		private readonly IDictionary<string, ISKFunction> outputSkillFunctions;
+		private readonly IDictionary<string, ISKFunction> checkInputFunctions;
 
-		public KernelService(IOutputSkill outputSkill)
+		public KernelService(IKernel kernel, IOutputSkill outputSkill, ICheckInputFunction checkInputFunction)
 		{
-			kernel = new KernelBuilder().Build();
+			this.kernel = kernel;
 
 			if(kernel != null)
 			{
 				outputSkillFunctions = kernel.ImportFunctions(outputSkill);
+				checkInputFunctions = kernel.ImportFunctions(checkInputFunction);
 			}
 			else
 			{
 				throw new Exception("Could not implement kernel!");
 			}
 			
-
 		}
 
-		public async Task StartAsync(string input)
+		public async Task FindEpisodes(string input)
 		{
 			await kernel.RunAsync(
-					"Beep, boop, I'm .DotNetBot and I'm here to help. If you're done say goodbye.",
-					outputSkillFunctions[nameof(IOutputSkill.RespondAsync)]
+					input,
+					checkInputFunctions[nameof(ICheckInputFunction.ValidateInputAsync)]
 			);
 		}
 	}

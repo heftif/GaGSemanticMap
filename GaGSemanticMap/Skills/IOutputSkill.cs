@@ -5,7 +5,7 @@ namespace GaGSemanticMap.Skills
 	public interface IOutputSkill
 	{
 		/// <summary>
-		/// Responds tp the user
+		/// Responds to the user
 		/// </summary>
 		public Task<string> RespondAsync(string message, SKContext context);
 	}

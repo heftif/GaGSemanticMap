@@ -40,13 +40,11 @@ public class SemanticSearchService : ISemanticSearchService
                 new ChatMessage(ChatRole.User, userInput)
             },
             MaxTokens = 400,
-            DeploymentName = model
-           
         };
 
-        Response<ChatCompletions> response = await client.GetChatCompletionsAsync(chatCompletionsOptions);
+        Response<ChatCompletions> response = await client.GetChatCompletionsAsync(model, chatCompletionsOptions);
 
-        var botResponse = response.Value.Choices.First().Message.Content;
+		var botResponse = response.Value.Choices.First().Message.Content;
         
         return botResponse;
     }
@@ -60,12 +58,11 @@ public class SemanticSearchService : ISemanticSearchService
 
 		try
 		{
-			EmbeddingsOptions options = new EmbeddingsOptions(embeddingModel, new string[] { userInput });
+			EmbeddingsOptions options = new EmbeddingsOptions(new string[] { userInput });
 
-			var result = (await client.GetEmbeddingsAsync(options)).Value.Data[0].Embedding;
+			var result = (await client.GetEmbeddingsAsync(embeddingModel,options)).Value.Data[0].Embedding;
 
-			return new Vector(result);
-
+			return new Vector(result as float[] ?? [.. result]);
 		}
 		catch (Exception ex)
 		{

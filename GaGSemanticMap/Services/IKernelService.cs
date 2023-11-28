@@ -2,6 +2,6 @@
 {
 	public interface IKernelService
 	{
-		Task StartAsync(string input);
+		Task FindEpisodes(string input);
 	}
 }

@@ -1,45 +1,51 @@
 using GaGSemanticMap.Components;
 using DotNetEnv;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using GaGSemanticMap;
 using Azure.AI.OpenAI;
 using Azure;
 using GaGSemanticMap.Services;
 using GaGSemanticMap.Skills;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.AI.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 
 var builder = WebApplication.CreateBuilder(args);
 
 Env.Load();
 
+string key = Environment.GetEnvironmentVariable("KEY");
+string endPoint = Environment.GetEnvironmentVariable("ENDPOINT");
+string model = Environment.GetEnvironmentVariable("MODEL");
+string embeddingModel = Environment.GetEnvironmentVariable("EMBEDDING");
+
 //todo: implement a logger
 
 //add configs
-builder.Configuration.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", true, true)
+/*builder.Configuration.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", true, true)
     .AddEnvironmentVariables()
-    .AddUserSecrets<Program>(); 
-
+    .AddUserSecrets<Program>(); */
 
 // register services
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-/*builder.Services.AddSingleton(provider =>
-{
-  
-    OpenAIClient client = Environment.GetEnvironmentVariable("TYPE") == "azure"
-        ? new OpenAIClient(new Uri(Environment.GetEnvironmentVariable("ENDPOINT")!), new AzureKeyCredential(Environment.GetEnvironmentVariable("KEY")))
-        : new OpenAIClient(Environment.GetEnvironmentVariable("KEY"));
-
-    return client;
-});*/
-
 builder.Services.AddLogging();
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
+
+
+var client = new OpenAIClient(new Uri(endPoint!), new AzureKeyCredential(key));
+
+//initiate kernel
+var kernelBuilder = new KernelBuilder();
+kernelBuilder.WithAzureOpenAIChatCompletionService(model, client);
+//kernelBuilder.WithAzureOpenAITextEmbeddingGenerationService(embeddingModel, endPoint!, key);
+IKernel kernel = kernelBuilder.Build();
+builder.Services.AddSingleton(kernel);
+
 
 builder.Services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
 builder.Services.AddSingleton<IKernelService, KernelService>();
 builder.Services.AddSingleton<IOutputSkill, OutputSkill>();
+builder.Services.AddSingleton<ICheckInputFunction, CheckInputFunction>();
 
 
 var app = builder.Build();

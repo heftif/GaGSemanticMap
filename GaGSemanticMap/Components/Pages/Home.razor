@@ -11,7 +11,7 @@
 <!-- ensure that UserInput is updated before onkeyup is triggered to get the text-->
 <input @bind-value="UserInput" @bind-value:event="oninput" @onkeyup="OnEnter" />
 
-<button class="btn btn-primary" @onclick="TriggerPipeline" tabindex="0">Go!</button>
+<button class="btn btn-primary" @onclick="FindEpisodes" tabindex="0">Go!</button>
 
 <h3>Chat: </h3>
 @foreach(var outputText in outputTexts)
@@ -26,13 +26,13 @@
 	public string? UserInput { get; set; }
 	private List<string> outputTexts = new List<string>();
 
-	private async Task TriggerPipeline()
+	private async Task FindEpisodes()
 	{
 		if (!string.IsNullOrEmpty(UserInput))
 		{
 			outputTexts.Add($"User: {UserInput}");
 
-			await _kernelService.StartAsync(UserInput);
+			await _kernelService.FindEpisodes(UserInput);
 		}
 	}
 
@@ -62,7 +62,7 @@
 	{
 		if (e.Code == "Enter" || e.Code == "NumpadEnter")
 		{
-			await TriggerPipeline();
+			await FindEpisodes();
 			//await GetEmbeddings();
 			//await GetResponse();
 		}
