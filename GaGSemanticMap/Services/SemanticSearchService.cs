@@ -3,6 +3,8 @@ using Azure.AI.OpenAI;
 using GaGSemanticMap.Models;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.Embeddings;
+using Microsoft.SemanticKernel.Memory;
+using System.Collections;
 using Vector = Pgvector.Vector;
 
 
@@ -12,16 +14,52 @@ public class SemanticSearchService : ISemanticSearchService
 {
 
 	List<EventPoint> eventPoints = new List<EventPoint>();
+	ISemanticTextMemory memory;
 
 
-    public SemanticSearchService(IKernel kernel) 
+	public SemanticSearchService(ISemanticTextMemory memory) 
     {
         //load the eventpoints from csv file 
-        //use a db in the future
         eventPoints = File.ReadAllLines("GaGData_181123.csv").Skip(1).Select(x => EventPoint.FromCsv(x)).ToList();
 
 		Console.WriteLine("Initialized Event Points");
+
+		//it would be nice to do this with a memory store, but to do this, we need to store
+		//the embeddings vectors as they take forever
+		//to load otherwise - also, these many accesses might be costly.
+		//We could do this using sqlite (see connector)
+
+		//fill memory with info from podcast
+		/*string collectionName = "GaGEpisodes";
+		foreach(var ep in eventPoints)
+		{
+			memory.SaveInformationAsync(collectionName, ep.Description, ep.EpisodeName).GetAwaiter().GetResult();
+		}
+
+		this.memory = memory;*/
+		
+		//TEST(collectionName).GetAwaiter().GetResult();
+
 	}
+
+	/*private async Task TEST(string collectionName)
+	{
+		//test
+		var questions = new[]
+		{
+			"what about things in london",
+			"are there events in asia",
+			"do you know things about vikings?"
+		};
+
+		foreach (var q in questions)
+		{
+			var responses = memory.SearchAsync(collectionName, q, limit: 5).ToBlockingEnumerable();
+
+			foreach(var response in responses)
+				Console.WriteLine(q + " " + response?.Metadata.Text);
+		}
+	}*/
 
 	//in a next step, this should be changed to move the data I read into the semantic memory and than retrieve from there.
 	[SKFunction, SKName(nameof(GetEventsBySemanticRelevanceAsync))]

@@ -7,6 +7,7 @@ using GaGSemanticMap.Skills;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
+using Microsoft.SemanticKernel.Plugins.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,12 @@ kernelBuilder.WithAzureOpenAITextEmbeddingGenerationService(embeddingModel, endP
 IKernel kernel = kernelBuilder.Build();
 builder.Services.AddSingleton(kernel);
 
+var memoryBuilder = new MemoryBuilder();
+memoryBuilder.WithAzureOpenAITextEmbeddingGenerationService(embeddingModel, endPoint!, key);
+memoryBuilder.WithMemoryStore(new VolatileMemoryStore());
+var memory = memoryBuilder.Build();
+
+builder.Services.AddSingleton(memory);
 
 builder.Services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
 builder.Services.AddSingleton<IKernelService, KernelService>();
