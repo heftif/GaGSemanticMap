@@ -13,8 +13,9 @@ namespace GaGSemanticMap.Services
 		private readonly IKernel? kernel;
 		private readonly IDictionary<string, ISKFunction> outputSkillFunctions;
 		private readonly IDictionary<string, ISKFunction> checkInputFunctions;
+		private readonly IDictionary<string, ISKFunction> semanticSearchFunctions;
 
-		public KernelService(IKernel kernel, IOutputSkill outputSkill, ICheckInputFunction checkInputFunction)
+		public KernelService(IKernel kernel, IOutputSkill outputSkill, ICheckInputFunction checkInputFunction, ISemanticSearchService semanticSearchService)
 		{
 			this.kernel = kernel;
 
@@ -22,6 +23,7 @@ namespace GaGSemanticMap.Services
 			{
 				outputSkillFunctions = kernel.ImportFunctions(outputSkill);
 				checkInputFunctions = kernel.ImportFunctions(checkInputFunction);
+				semanticSearchFunctions = kernel.ImportFunctions(semanticSearchService);
 			}
 			else
 			{
@@ -32,10 +34,20 @@ namespace GaGSemanticMap.Services
 
 		public async Task FindEpisodes(string input)
 		{
-			await kernel.RunAsync(
-					input,
-					checkInputFunctions[nameof(ICheckInputFunction.ValidateInputAsync)]
-			);
+			//reformulate the question and translate to german
+			var result = await kernel.RunAsync(
+						input,
+						checkInputFunctions[nameof(ICheckInputFunction.ValidateInputAsync)]
+				);
+
+			var botResponse = result.GetValue<string>();
+
+			ISKFunction[] pipeline = {
+				semanticSearchFunctions[nameof(ISemanticSearchService.GetEventsBySemanticRelevanceAsync)],
+
+			};
+
+			await kernel.RunAsync(botResponse, pipeline);
 		}
 	}
 }

@@ -19,7 +19,7 @@ namespace GaGSemanticMap.Skills
 			chatRequestSettings = new()
 			{
 				MaxTokens = 500,
-				Temperature = 0.0f,
+				Temperature = 0.2f,
 				FrequencyPenalty = 0.0f,
 				PresencePenalty = 0.0f,
 				TopP = 0.0f
@@ -28,10 +28,8 @@ namespace GaGSemanticMap.Skills
 			//for this service to be registered, the kernel must be registered with AzureOpenAI (with the corresponding endpoint and key)
 			chatCompletion = kernel.GetService<IChatCompletion>();
 
-			var prompt = "You are an expert on the podcast 'Geschichten aus der Geschichte', which is a history podcast, telling short stories about events that happened in history. " +
-				"		You check, if the user is asking a question related to history or a place existing on earth. If you are not sure, ask the user to be more precise. " +
-				"If the question is not related to history, tell the user that you are an expert for this history podcast only and you can't answer the question. You answer in english " +
-				"and are kind and professional.";
+			var prompt = "You take the question of the user and reformulate it in such a way that is optimal to find related semantic embeddings in history podcasts episodes. The response " +
+				"has to be between 10 and 50 words. You speak german and give the answer in german.";
 
 			chatHistory = chatCompletion.CreateNewChat(prompt);
 
@@ -40,25 +38,23 @@ namespace GaGSemanticMap.Skills
 		[SKFunction, SKName(nameof(ValidateInputAsync))]
 		public async Task<string> ValidateInputAsync(string input, SKContext context)
 		{
-
 			string reply = string.Empty;
 			try
 			{
-				// Add the question as a user message to the chat history, then send everything to OpenAI.
-				// The chat history is used as context for the prompt
+				//add the user input to the chat history
 				chatHistory.AddUserMessage(input);
 
 				IReadOnlyList<IChatResult> completion = null;
 
 				try
 				{
+					//hand the history to the chatmodel to get the response
 					completion = await chatCompletion.GetChatCompletionsAsync(chatHistory, chatRequestSettings);
 				}
 				catch(Exception ex)
 				{
 					Console.Write(ex.Message);
 				}
-				
 
 				if (!completion.Any())
 					throw new SKException("No completion results returned from OpenAI.");

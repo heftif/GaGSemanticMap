@@ -37,7 +37,7 @@ var client = new OpenAIClient(new Uri(endPoint!), new AzureKeyCredential(key));
 //initiate kernel
 var kernelBuilder = new KernelBuilder();
 kernelBuilder.WithAzureOpenAIChatCompletionService(model, client);
-//kernelBuilder.WithAzureOpenAITextEmbeddingGenerationService(embeddingModel, endPoint!, key);
+kernelBuilder.WithAzureOpenAITextEmbeddingGenerationService(embeddingModel, endPoint!, key);
 IKernel kernel = kernelBuilder.Build();
 builder.Services.AddSingleton(kernel);
 

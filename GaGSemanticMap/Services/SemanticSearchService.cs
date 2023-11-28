@@ -1,6 +1,8 @@
 ﻿using Azure;
 using Azure.AI.OpenAI;
 using GaGSemanticMap.Models;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.AI.Embeddings;
 using Vector = Pgvector.Vector;
 
 
@@ -8,86 +10,25 @@ namespace GaGSemanticMap.Services;
 
 public class SemanticSearchService : ISemanticSearchService
 {
-    string key = Environment.GetEnvironmentVariable("KEY");
-    string endPoint = Environment.GetEnvironmentVariable("ENDPOINT");
-	string model = Environment.GetEnvironmentVariable("MODEL");
-	string embeddingModel = Environment.GetEnvironmentVariable("EMBEDDING");
 
 	List<EventPoint> eventPoints = new List<EventPoint>();
 
 
-    public SemanticSearchService() 
+    public SemanticSearchService(IKernel kernel) 
     {
         //load the eventpoints from csv file 
         //use a db in the future
         eventPoints = File.ReadAllLines("GaGData_181123.csv").Skip(1).Select(x => EventPoint.FromCsv(x)).ToList();
 
 		Console.WriteLine("Initialized Event Points");
-
 	}
 
-	public async Task<string> GetOpenAIResponseAsync(string userInput)
+	//in a next step, this should be changed to move the data I read into the semantic memory and than retrieve from there.
+	[SKFunction, SKName(nameof(GetEventsBySemanticRelevanceAsync))]
+	public async Task<string> GetEventsBySemanticRelevanceAsync(string botInput)
     {
-		//initialise client
-		var client = new OpenAIClient(new Uri(endPoint!), new AzureKeyCredential(key));
-
-		var chatCompletionsOptions = new ChatCompletionsOptions()
-        {
-            Messages =
-            {
-                //new ChatMessage(ChatRole.System, "You are an unhelpful assistant, getting sassy when you have to answer a question"),
-                new ChatMessage(ChatRole.System, "You speak like Yoda and give wise advice"),
-                new ChatMessage(ChatRole.User, userInput)
-            },
-            MaxTokens = 400,
-        };
-
-        Response<ChatCompletions> response = await client.GetChatCompletionsAsync(model, chatCompletionsOptions);
-
-		var botResponse = response.Value.Choices.First().Message.Content;
-        
-        return botResponse;
-    }
-
-    private async Task<Vector> GetEmbeddingsAsync(string userInput, int retry)
-    {
-        //initialise client
-		var client = new OpenAIClient(new Uri(endPoint!), new AzureKeyCredential(key));
-
-		Console.WriteLine($"Getting embedding for {userInput}");
-
-		try
-		{
-			EmbeddingsOptions options = new EmbeddingsOptions(new string[] { userInput });
-
-			var result = (await client.GetEmbeddingsAsync(embeddingModel,options)).Value.Data[0].Embedding;
-
-			return new Vector(result as float[] ?? [.. result]);
-		}
-		catch (Exception ex)
-		{
-			if (retry < 5)
-			{
-				retry++;
-
-				Console.WriteLine(ex.Message);
-				Console.WriteLine("Retry");
-
-				return await GetEmbeddingsAsync(userInput, retry);
-			}
-
-			return null;
-		}
-
-	}
-
-    public async Task GetEventsBySemanticRelevanceAsync(string userInput)
-    {
-		int retry = 0;
-
 		// Create an embedding for the input search
-		var vector = await GetEmbeddingsAsync(userInput, retry);
-
+		var vector = await GetEmbeddingsAsync(botInput);
 
 		var eventsWithDistance = eventPoints
 				.Select(c => new { Item = c, Distance = GetCosineDistance(vector.ToArray(), c.Embedding.ToArray())})
@@ -105,14 +46,50 @@ public class SemanticSearchService : ISemanticSearchService
 
 		//stretch events to range from 0 to 1, to make it easier to find a cutoff
 		var normalizedEvents = eventsWithDistance
-			.Select(c => new { Item = c.Item, Distance = c.Distance, NormDistance = NormalizeDistance(c.Distance, minDistance, maxDistance) })
+			.Select(c => new EventPointWithDistance{ 
+					EventPoint = c.Item, 
+					Distance =		c.Distance, 
+					NormDistance = NormalizeDistance(c.Distance, minDistance, maxDistance) 
+			})
 			.ToList();
 
 		//print the 20 closest items
 		for (int i = 0; i < 20; i++)
 		{
 			var e = normalizedEvents[i];
-			Console.WriteLine($" {i}. Event: {e.Item.EpisodeName}, Distance: {e.NormDistance}");
+			Console.WriteLine($" {i}. Event: {e.EventPoint.EpisodeName}, Distance: {e.NormDistance}");
+		}
+
+		return normalizedEvents.Select(x => x.EventPoint.Description).FirstOrDefault();
+
+	}
+
+	private async Task<Vector> GetEmbeddingsAsync(string botInput)
+	{
+
+		string key = Environment.GetEnvironmentVariable("KEY");
+		string endPoint = Environment.GetEnvironmentVariable("ENDPOINT");
+		string embeddingModel = Environment.GetEnvironmentVariable("EMBEDDING");
+
+		//initialise client
+		var client = new OpenAIClient(new Uri(endPoint!), new AzureKeyCredential(key));
+
+		Console.WriteLine($"Getting embedding for {botInput}");
+
+		try
+		{
+			EmbeddingsOptions options = new EmbeddingsOptions(new string[] { botInput });
+
+			var result = (await client.GetEmbeddingsAsync(embeddingModel, options)).Value.Data[0].Embedding;
+
+			return new Vector(result as float[] ?? [.. result]);
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine(ex.Message);
+			Console.WriteLine("Retry");
+
+			return null;
 		}
 
 	}
