@@ -9,5 +9,10 @@ namespace GaGSemanticMap.Skills
 		/// Checks validity of the input
 		/// </summary>
 		public Task<string> ValidateInputAsync(string message, SKContext context);
+
+		/// <summary>
+		/// Evalute the response
+		/// </summary>
+		public Task<string> EvaluateResponseAsync(string message);
 	}
 }

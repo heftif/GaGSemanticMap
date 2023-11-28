@@ -32,7 +32,9 @@
 		{
 			outputTexts.Add($"User: {UserInput}");
 
-			await _kernelService.FindEpisodes(UserInput);
+			var response =  await _kernelService.FindEpisodes(UserInput);
+
+			outputTexts.Add($"Bot: {response}");
 		}
 	}
 
@@ -42,7 +44,9 @@
 		{
 			outputTexts.Add($"User: {UserInput}");
 
-			await _semanticService.GetEventsBySemanticRelevanceAsync(UserInput);
+			var response = await _semanticService.GetEventsBySemanticRelevanceAsync(UserInput);
+
+			outputTexts.Add($"Bot: {response}");
 		}
 	}
 

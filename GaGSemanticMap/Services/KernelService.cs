@@ -32,22 +32,22 @@ namespace GaGSemanticMap.Services
 			
 		}
 
-		public async Task FindEpisodes(string input)
+		public async Task<string> FindEpisodes(string input)
 		{
-			//reformulate the question and translate to german
-			var result = await kernel.RunAsync(
-						input,
-						checkInputFunctions[nameof(ICheckInputFunction.ValidateInputAsync)]
-				);
-
-			var botResponse = result.GetValue<string>();
-
+			//create pipeLine
 			ISKFunction[] pipeline = {
+				checkInputFunctions[nameof(ICheckInputFunction.ValidateInputAsync)],
 				semanticSearchFunctions[nameof(ISemanticSearchService.GetEventsBySemanticRelevanceAsync)],
-
+				checkInputFunctions[nameof(ICheckInputFunction.EvaluateResponseAsync)]
 			};
 
-			await kernel.RunAsync(botResponse, pipeline);
+			var result = await kernel.RunAsync(input, pipeline);
+			
+			//reformulate the question and translate to german
+			var botResponse = result.GetValue<string>();
+
+			return botResponse;
+			
 		}
 	}
 }

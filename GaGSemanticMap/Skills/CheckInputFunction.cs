@@ -51,7 +51,7 @@ namespace GaGSemanticMap.Skills
 					//hand the history to the chatmodel to get the response
 					completion = await chatCompletion.GetChatCompletionsAsync(chatHistory, chatRequestSettings);
 				}
-				catch(Exception ex)
+				catch (Exception ex)
 				{
 					Console.Write(ex.Message);
 				}
@@ -77,5 +77,53 @@ namespace GaGSemanticMap.Skills
 			return reply;
 		}
 
+		[SKFunction, SKName(nameof(EvaluateResponseAsync))]
+		public async Task<string> EvaluateResponseAsync(string input)
+		{
+			string reply = "";
+
+			try
+			{
+				chatHistory.AddAssistantMessage($"Here are the top 10 podcast episodes relating to the question you asked {input}");
+				chatHistory.AddSystemMessage("Check the answers and give back a list containing at minimum 5 of these 10 episodes as episode title" +
+												"in bullet point form. Also be nice about it and sound natural.");
+
+
+				IReadOnlyList<IChatResult> completion = null;
+
+				try
+				{
+					//hand the history to the chatmodel to get the response
+					completion = await chatCompletion.GetChatCompletionsAsync(chatHistory, chatRequestSettings);
+				}
+				catch (Exception ex)
+				{
+					Console.Write(ex.Message);
+				}
+
+				if (!completion.Any())
+					throw new SKException("No completion results returned from OpenAI.");
+
+				foreach (IChatResult result in completion)
+				{
+					// Add the completion result as an assistant message to the chat history.
+					ChatMessage message = await result.GetChatMessageAsync();
+					chatHistory.AddAssistantMessage(message.Content);
+
+					reply += Environment.NewLine + message.Content;
+				}
+
+
+			}
+			catch(SKException aiex)
+			{
+				// Reply with the error message if there is one
+				reply = $"OpenAI returned an error ({aiex.Message}). Please try again.";
+			}
+
+			return reply;
+		}
 	}
+
+
 }

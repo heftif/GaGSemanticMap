@@ -24,6 +24,7 @@ public class SemanticSearchService : ISemanticSearchService
 
 		Console.WriteLine("Initialized Event Points");
 
+
 		//it would be nice to do this with a memory store, but to do this, we need to store
 		//the embeddings vectors as they take forever
 		//to load otherwise - also, these many accesses might be costly.
@@ -91,14 +92,20 @@ public class SemanticSearchService : ISemanticSearchService
 			})
 			.ToList();
 
+		//string assembly
+		string reply = "";
+
 		//print the 20 closest items
-		for (int i = 0; i < 20; i++)
+		for (int i = 0; i < 10; i++)
 		{
 			var e = normalizedEvents[i];
-			Console.WriteLine($" {i}. Event: {e.EventPoint.EpisodeName}, Distance: {e.NormDistance}");
+			Console.WriteLine($" {i}. Event: {e.EventPoint.EpisodeName}, Distance: {e.Distance}");
+			e.Rank = i;
 		}
 
-		return normalizedEvents.Select(x => x.EventPoint.Description).FirstOrDefault();
+		reply = JSONHelper.ConvertToJson<EventPointWithDistance>(normalizedEvents.Take(10).ToList());
+
+		return reply;
 
 	}
 
@@ -125,7 +132,6 @@ public class SemanticSearchService : ISemanticSearchService
 		catch (Exception ex)
 		{
 			Console.WriteLine(ex.Message);
-			Console.WriteLine("Retry");
 
 			return null;
 		}

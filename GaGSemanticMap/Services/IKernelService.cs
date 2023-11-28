@@ -2,6 +2,6 @@
 {
 	public interface IKernelService
 	{
-		Task FindEpisodes(string input);
+		Task<string> FindEpisodes(string input);
 	}
 }
