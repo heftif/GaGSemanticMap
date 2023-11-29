@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using Newtonsoft.Json;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using Vector = Pgvector.Vector;
 
@@ -14,6 +15,7 @@ public class EventPoint
 
 	public Location Location;
 
+	[JsonIgnore]
 	public Vector Embedding;
 
 	public static EventPoint FromCsv(string csvLine)
