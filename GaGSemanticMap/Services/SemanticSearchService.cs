@@ -103,7 +103,9 @@ public class SemanticSearchService : ISemanticSearchService
 			e.Rank = i;
 		}
 
-		reply = JSONHelper.ConvertToJson<EventPointWithDistance>(normalizedEvents.Take(10).ToList());
+		reply = JSONHelper.ConvertToJson<EventPointWithDistance>(normalizedEvents.Take(5).ToList());
+
+		Console.WriteLine($"Finished with results from embedding");
 
 		return reply;
 

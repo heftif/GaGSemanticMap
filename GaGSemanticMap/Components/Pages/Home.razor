@@ -1,75 +1,237 @@
 ﻿@page "/"
+@using System.Text.RegularExpressions
 @rendermode InteractiveServer
 @inject ISemanticSearchService _semanticService
 @inject IKernelService _kernelService;
 
-<PageTitle>Home</PageTitle>
-
-<h2>Type your question here: </h2>
+<PageTitle>GaG Search Engine</PageTitle>
 
 
-<!-- ensure that UserInput is updated before onkeyup is triggered to get the text-->
-<input @bind-value="UserInput" @bind-value:event="oninput" @onkeyup="OnEnter" />
+<div class="sidebar" style="@sidebarWidth;color:white">
 
-<button class="btn btn-primary" @onclick="FindEpisodes" tabindex="0">Go!</button>
+	<a class="closebtn" @onclick="CloseNav">&times;</a>
 
-<h3>Chat: </h3>
-@foreach(var outputText in outputTexts)
-{
-	<p>@outputText</p>
-}
+	<h3>Description</h3>
+
+	<p class="stats-row">
+		This is a search engine for podcast episodes. Currently, the history podcast "Geschichten aus der Geschichte" is configured, but the solution
+		can be adapted for other podcasts by:
+	</p>
+
+	<ul>
+		<li class="list">Adding a different CSV source (with calculated embeddings) </li>
+		<li>Adjusting the prompt for the Open AI Chat to be related to your podcast topic</li>
+	</ul>
+
+	<p class="stats-row"> Enter a command related to a topic to get the top 5 recommended episodes. For example:</p>
+	
+	<ul>
+		<li class="list"> Give me episodes about London </li>
+		<li> I like to see episodes about strong women</li>
+		<li> Give me all episodes related to food</li>
+	</ul>
+
+	<p class="stats-row"> Ask to know more about a specific topic to get infos directly from Open AI Chat. For example:</p>
+
+	<ul>
+		<li class="list"> I'd like to know more about the great smog of London</li>
+	</ul>
+
+	<p class="stats-row"> And finally, add podcast episodes to your "To Listen" list by asking Chat to do it. For example:</p>
+	<ul>
+		<li class="list"> Can you add Episode GAG:235 to my "To Listen" list?</li>
+	</ul>
+</div>
+
+
+
+<div style="@mainMargin" class="mainarea">
+
+	<h1> Podcast Episode Search Engine </h1>
+
+	<!--for sidebar-->
+	@if (width == 0)
+	{
+		<button class="openbtn" @onclick="OpenNav">&#9776; Open Description</button>
+	}
+
+	<div class="grid-container">
+		<div>
+			<h2 style="margin-top:20px"> Podcast: Geschichten aus der Geschichte</h2>
+			<p> Type in what kind of topic you're interested in and get the best episodes for you! It's like talking to your favorite podcast!
+			</p>
+
+			<div class="chatbox">
+				<h3>What are you interested in?</h3>
+
+				<!-- ensure that UserInput is updated before onkeyup is triggered to get the text-->
+				<input @bind-value="UserInput" @bind-value:event="oninput" @onkeyup="OnEnter" style="width:100%;height:30px;"/><br />
+
+				<button class="btn btn-primary" @onclick="FindEpisodes" tabindex="0" style="margin-top:5px; margin-bottom:5px" disabled="@Disabled">Go!</button>
+
+				<div class="chatpanel">
+					<p style="text-align:right"><sup>Chat</sup></p>
+					<!-- pre keeps formatting -->
+					@for(int i = 0; i< outputMessages.Count(); i++)
+					{
+						var outputMessage = outputMessages[i];
+
+						if (outputMessage.StartsWith("User") || (outputMessage.StartsWith("Bot")))
+						{
+							<p style="margin-bottom: 2px"><strong>@outputMessage</strong></p>
+						}
+						else
+						{
+							if (IsBulletPointFormat(outputMessage) && i+2 < outputMessages.Count())
+							{
+								<ul style="list-style-type: none; padding: 0;">
+									<!--split it up even more-->
+									<li><strong>@outputMessages[i]</strong></li>
+									<ul>
+										<li style="margin-bottom: 10px;">
+											<span>@outputMessages[i + 1]</span>
+											<a target="_blank" href="@TransformUrl(outputMessages[i + 2])">@TransformText(outputMessages[i + 2])</a>
+										</li>
+									</ul>
+								</ul>
+
+								i += 2;
+							}
+							else
+							{
+								<p>@outputMessage</p>
+							}
+						}
+					}
+				</div>
+			</div>
+		</div>
+
+		<div class="listening-queue">
+			<h4>Listening Queue:</h4>
+			<ul>
+			@foreach(var q in queue)
+			{
+				<li>@q</li>
+			}
+			</ul>
+		</div>
+	</div>
+</div>
 
 
 
 @code{
 
+
+	//sidebar navigation
+	int width = 0;
+	string sidebarWidth => $"width: {width}px;";
+	string mainMargin => $"margin-left: {width}px;";
+	void OpenNav() => width = 450;
+	void CloseNav() => width = 0;
+
 	public string? UserInput { get; set; }
-	private List<string> outputTexts = new List<string>();
+	public bool Disabled { get; set; }
+	private List<string> outputMessages = new List<string>();
+	private List<string> botChat = new List<string>();
+	private List<string> queue = new List<string>();
 
 	private async Task FindEpisodes()
 	{
 		if (!string.IsNullOrEmpty(UserInput))
 		{
-			outputTexts.Add($"User: {UserInput}");
+			Disabled = true;
+
+			outputMessages.Add("User:");
+			outputMessages.Add($"{UserInput}");
 
 			var response =  await _kernelService.FindEpisodes(UserInput);
 
-			outputTexts.Add($"Bot: {response}");
+			outputMessages.Add("Bot:");
+			//split up the response and add 
+			foreach(var r in SplitResponse(response))
+			{
+				outputMessages.Add($"{r}");
+			}
+
+			Disabled = false;
+
 		}
 	}
-
-	private async Task GetEmbeddings()
-	{
-		if(!string.IsNullOrEmpty(UserInput))
-		{
-			outputTexts.Add($"User: {UserInput}");
-
-			var response = await _semanticService.GetEventsBySemanticRelevanceAsync(UserInput);
-
-			outputTexts.Add($"Bot: {response}");
-		}
-	}
-
-	/*private async Task GetResponse()
-	{
-		if(!string.IsNullOrEmpty(UserInput))
-		{
-			outputTexts.Add($"User: {UserInput}");
-
-			var response = await _semanticService.GetOpenAIResponseAsync(UserInput);
-
-			outputTexts.Add($"Bot: {response}");
-		}
-	}*/
 
 	private async Task OnEnter(KeyboardEventArgs e)
 	{
 		if (e.Code == "Enter" || e.Code == "NumpadEnter")
 		{
 			await FindEpisodes();
-			//await GetEmbeddings();
-			//await GetResponse();
 		}
 	}
 
+	bool IsBulletPointFormat(string text)
+	{
+		// Adjust the logic based on your criteria
+		return text.TrimStart().StartsWith("1.") ||
+				text.TrimStart().StartsWith("2.") ||
+				text.TrimStart().StartsWith("3.") ||
+				text.TrimStart().StartsWith("4.") ||
+				text.TrimStart().StartsWith("5.");
+	}
+
+	List<string> SplitResponse(string text)
+	{
+
+		// Split the text into individual lines
+		var bulletPoints = text.Split('\n')
+										.Select(line => line.Trim())
+										.Where(line => !string.IsNullOrEmpty(line))
+										.ToList();
+
+		return bulletPoints;
+	}
+
+	string TransformLinks(string text)
+	{
+		// Replace [Listen to the episode](https://www.geschichte.fm/podcast/zs106/) with an HTML link
+		return Regex.Replace(text, @"\[(.*?)\]\((.*?)\)", "<a href=\"$2\">$1</a>");
+	}
+
+	string TransformUrl(string text)
+	{
+		// Define a regular expression pattern to match [text](URL) format
+		var regexPattern = @"\[(.*?)\]\((.*?)\)";
+
+		// Use Regex.Match to find the first match in the input text
+		var match = Regex.Match(text, regexPattern);
+
+		// If a match is found, return the URL captured in the second group
+		if (match.Success)
+		{
+			return match.Groups[2].Value;
+		}
+
+		// If no match is found, return an empty string or handle it as needed
+		return string.Empty;
+	}
+
+	string TransformText(string text)
+	{
+		// Define a regular expression pattern to match [text](URL) format
+		var regexPattern = @"\[(.*?)\]\((.*?)\)";
+
+		// Use Regex.Match to find the first match in the input text
+		var match = Regex.Match(text, regexPattern);
+
+		// If a match is found, return the URL captured in the second group
+		if (match.Success)
+		{
+			return match.Groups[1].Value;
+		}
+
+		// If no match is found, return an empty string or handle it as needed
+		return string.Empty;
+	}
+
+
 }
+

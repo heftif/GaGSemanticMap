@@ -1,7 +1,9 @@
 ﻿using GaGSemanticMap.Skills;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Orchestration;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 //using Microsoft.SemanticKernel.SkillDefinition;
 //using Microsoft.SemanticKernel.Skills.Core;
@@ -46,8 +48,16 @@ namespace GaGSemanticMap.Services
 			//reformulate the question and translate to german
 			var botResponse = result.GetValue<string>();
 
-			return botResponse;
-			
+			//ensure formatting
+
+
+			return EnsureFormatting(botResponse);
+		}
+
+		private string EnsureFormatting(string botResponse)
+		{
+			//make sure there is a new line before the link
+			return Regex.Replace(botResponse, @"(?<!\n)\[", "\n[");
 		}
 	}
 }
