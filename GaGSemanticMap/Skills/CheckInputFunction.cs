@@ -29,8 +29,8 @@ namespace GaGSemanticMap.Skills
 
 		}
 
-		[SKFunction, SKName(nameof(ValidateInputAsync))]
-		public async Task<string> ValidateInputAsync(string input, SKContext context)
+		[SKFunction, SKName(nameof(TranslateInputAsync))]
+		public async Task<string> TranslateInputAsync(string input, SKContext context)
 		{
 			SetupChat();
 

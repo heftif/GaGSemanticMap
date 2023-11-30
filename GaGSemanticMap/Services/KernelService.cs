@@ -13,9 +13,9 @@ namespace GaGSemanticMap.Services
 	public class KernelService : IKernelService
 	{
 		private readonly IKernel? kernel;
-		private readonly IDictionary<string, ISKFunction> outputSkillFunctions;
 		private readonly IDictionary<string, ISKFunction> checkInputFunctions;
 		private readonly IDictionary<string, ISKFunction> semanticSearchFunctions;
+		private readonly IDictionary<string, ISKFunction> orchestrationFunctions;
 
 		public KernelService(IKernel kernel, IOutputSkill outputSkill, ICheckInputFunction checkInputFunction, ISemanticSearchService semanticSearchService)
 		{
@@ -23,9 +23,9 @@ namespace GaGSemanticMap.Services
 
 			if(kernel != null)
 			{
-				outputSkillFunctions = kernel.ImportFunctions(outputSkill);
 				checkInputFunctions = kernel.ImportFunctions(checkInputFunction);
 				semanticSearchFunctions = kernel.ImportFunctions(semanticSearchService);
+				orchestrationFunctions = kernel.ImportFunctions(new Orchestrator(kernel), "OrchestratorPlugin");
 			}
 			else
 			{
@@ -36,9 +36,12 @@ namespace GaGSemanticMap.Services
 
 		public async Task<string> FindEpisodes(string input)
 		{
+			//get intent
+			var intent = await kernel.RunAsync(input, orchestrationFunctions[nameof(IOrchestrator.RouteRequestAsync)]);
+
 			//create pipeLine
 			ISKFunction[] pipeline = {
-				checkInputFunctions[nameof(ICheckInputFunction.ValidateInputAsync)],
+				checkInputFunctions[nameof(ICheckInputFunction.TranslateInputAsync)],
 				semanticSearchFunctions[nameof(ISemanticSearchService.GetEventsBySemanticRelevanceAsync)],
 				checkInputFunctions[nameof(ICheckInputFunction.EvaluateResponseAsync)]
 			};
@@ -49,8 +52,6 @@ namespace GaGSemanticMap.Services
 			var botResponse = result.GetValue<string>();
 
 			//ensure formatting
-
-
 			return EnsureFormatting(botResponse);
 		}
 

@@ -40,6 +40,10 @@ var kernelBuilder = new KernelBuilder();
 kernelBuilder.WithAzureOpenAIChatCompletionService(model, client);
 kernelBuilder.WithAzureOpenAITextEmbeddingGenerationService(embeddingModel, endPoint!, key);
 IKernel kernel = kernelBuilder.Build();
+
+//configure plugins
+var pluginsDirectory = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "plugins");
+kernel.ImportSemanticFunctionsFromDirectory(pluginsDirectory, "OrchestratorPlugin");
 builder.Services.AddSingleton(kernel);
 
 var memoryBuilder = new MemoryBuilder();
