@@ -1,0 +1,11 @@
+﻿{
+  "type": "completion",
+  "description": "Asks the user for clarification.",
+  "completion": {
+    "max_tokens": 200,
+    "temperature": 0.2,
+    "top_p": 0.0,
+    "presence_penalty": 0.0,
+    "frequency_penalty": 0.0
+  }
+}

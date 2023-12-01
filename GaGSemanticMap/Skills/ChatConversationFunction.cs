@@ -3,18 +3,22 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Diagnostics;
+using Json.Schema.Generation.Intents;
 
 
 namespace GaGSemanticMap.Skills
 {
-	public class CheckInputFunction : ICheckInputFunction
+	public class ChatConversationFunction : IChatConversationFunction
 	{
 		private readonly OpenAIRequestSettings chatRequestSettings;
 		private readonly IChatCompletion chatCompletion;
+		private readonly IKernel kernel;
 		private ChatHistory chatHistory;
 
-		public CheckInputFunction(IKernel kernel)
+		public ChatConversationFunction(IKernel kernel)
 		{
+			this.kernel = kernel;
+
 			chatRequestSettings = new()
 			{
 				MaxTokens = 600,
@@ -32,7 +36,7 @@ namespace GaGSemanticMap.Skills
 		[SKFunction, SKName(nameof(TranslateInputAsync))]
 		public async Task<string> TranslateInputAsync(string input, SKContext context)
 		{
-			SetupChat();
+			ResetChat();
 
 			Console.WriteLine($"translating {input}");
 
@@ -139,8 +143,18 @@ namespace GaGSemanticMap.Skills
 			return reply;
 		}
 
+		[SKFunction, SKName(nameof(AskForClarificationAsync))]
+		public async Task<string> AskForClarificationAsync()
+		{
+			var getClarification = kernel.Functions.GetFunction("ChatPlugin", "GetClarification");
 
-		private void SetupChat()
+			string clarification = (await kernel.RunAsync(getClarification)).GetValue<string>()!.Trim();
+
+			//return the clarification
+			return clarification;
+		}
+		
+		private void ResetChat()
 		{
 			if (chatHistory != null && chatHistory.Any())
 				chatHistory.Clear();

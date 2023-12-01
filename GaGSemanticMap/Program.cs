@@ -44,6 +44,7 @@ IKernel kernel = kernelBuilder.Build();
 //configure plugins
 var pluginsDirectory = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "plugins");
 kernel.ImportSemanticFunctionsFromDirectory(pluginsDirectory, "OrchestratorPlugin");
+kernel.ImportSemanticFunctionsFromDirectory(pluginsDirectory, "ChatPlugin");
 builder.Services.AddSingleton(kernel);
 
 var memoryBuilder = new MemoryBuilder();
@@ -56,7 +57,7 @@ builder.Services.AddSingleton(memory);
 builder.Services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
 builder.Services.AddSingleton<IKernelService, KernelService>();
 builder.Services.AddSingleton<IOutputSkill, OutputSkill>();
-builder.Services.AddSingleton<ICheckInputFunction, CheckInputFunction>();
+builder.Services.AddSingleton<IChatConversationFunction, ChatConversationFunction>();
 
 
 var app = builder.Build();

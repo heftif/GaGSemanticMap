@@ -3,7 +3,7 @@ using Microsoft.SemanticKernel.Orchestration;
 
 namespace GaGSemanticMap.Skills
 {
-	public interface ICheckInputFunction
+	public interface IChatConversationFunction
 	{
 		/// <summary>
 		/// Checks validity of the input
@@ -14,5 +14,10 @@ namespace GaGSemanticMap.Skills
 		/// Evalute the response
 		/// </summary>
 		public Task<string> EvaluateResponseAsync(string message);
+
+		/// <summary>
+		/// AskForClarification
+		/// </summary>
+		public Task<string> AskForClarificationAsync();
 	}
 }
