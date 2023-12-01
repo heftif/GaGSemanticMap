@@ -5,6 +5,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.Embeddings;
 using Microsoft.SemanticKernel.Memory;
 using System.Collections;
+using System.Formats.Asn1;
 using Vector = Pgvector.Vector;
 
 
@@ -61,6 +62,11 @@ public class SemanticSearchService : ISemanticSearchService
 				Console.WriteLine(q + " " + response?.Metadata.Text);
 		}
 	}*/
+
+	public async Task<EventPoint> GetEventPoint(string episodeName)
+	{
+		return eventPoints.Where(x => episodeName.Contains(x.EpisodeName, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+	}
 
 	//in a next step, this should be changed to move the data I read into the semantic memory and than retrieve from there.
 	[SKFunction, SKName(nameof(GetEventsBySemanticRelevanceAsync))]

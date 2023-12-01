@@ -19,15 +19,6 @@ namespace GaGSemanticMap.Skills
 		{
 			this.kernel = kernel;
 
-			chatRequestSettings = new()
-			{
-				MaxTokens = 600,
-				Temperature = 0.4f,
-				FrequencyPenalty = 0.0f,
-				PresencePenalty = 0.0f,
-				TopP = 0.0f
-			};
-
 			//for this service to be registered, the kernel must be registered with AzureOpenAI (with the corresponding endpoint and key)
 			chatCompletion = kernel.GetService<IChatCompletion>();
 
@@ -36,62 +27,31 @@ namespace GaGSemanticMap.Skills
 		[SKFunction, SKName(nameof(TranslateInputAsync))]
 		public async Task<string> TranslateInputAsync(string input, SKContext context)
 		{
+			//to help with tokens and to not mix up various query, we reset the chat when asking for new episodes
 			ResetChat();
 
-			Console.WriteLine($"translating {input}");
+			//add the user message to the full chat history
+			chatHistory.AddUserMessage(input);
 
-			//localchat for this query only
-			var prompt = "Take the query or command and translate it to german, without adding anything to it.";
+			var getTranslation = kernel.Functions.GetFunction("ChatPlugin", "GetTranslation");
 
-			var localChatHistory = chatCompletion.CreateNewChat(prompt);
-
-			string reply = string.Empty;
-			try
+			var getTranslationVariable = new ContextVariables
 			{
+				["input"] = input,
+				["language"] = "german"
+			};
 
-				//add the user input to the chat history
-				localChatHistory.AddUserMessage(input);
+			string translation = (await kernel.RunAsync(getTranslationVariable, getTranslation)).GetValue<string>()!.Trim();
 
-				IReadOnlyList<IChatResult> completion = null;
-
-				try
-				{
-					//hand the history to the chatmodel to get the response
-					completion = await chatCompletion.GetChatCompletionsAsync(localChatHistory, chatRequestSettings);
-				}
-				catch (Exception ex)
-				{
-					Console.Write(ex.Message);
-				}
-
-				if (!completion.Any())
-					throw new SKException("No completion results returned from OpenAI.");
-
-				foreach (IChatResult result in completion)
-				{
-					// Add the german question to the chat history as first question.
-					ChatMessage message = await result.GetChatMessageAsync();
-					chatHistory.AddUserMessage(message.Content);
-
-					reply += Environment.NewLine + message.Content;
-				}
-			}
-			catch (SKException aiex)
+			if (string.IsNullOrEmpty(translation.Trim()))
 			{
-				// Reply with the error message if there is one
-				reply = $"OpenAI returned an error ({aiex.Message}). Please try again.";
+				translation = input;
+				Console.WriteLine($"Warning, translation didn't work, handing input down instead: {translation}");
 			}
 
-			Console.WriteLine($"Got Reply {reply}");
-
-			if (string.IsNullOrEmpty(reply.Trim()))
-			{
-				reply = input;
-				Console.WriteLine($"Warning, translation didn't work, handing input down instead: {reply}");
-			}
-				
-
-			return reply;
+			Console.WriteLine($"Translation and Condensed: {translation}");
+			//return the translation
+			return translation;
 		}
 
 		[SKFunction, SKName(nameof(EvaluateResponseAsync))]
@@ -99,48 +59,16 @@ namespace GaGSemanticMap.Skills
 		{
 			Console.WriteLine($"Formulate reply for answer");
 
-			string reply = "";
+			var getEpisodeAnswer = kernel.Functions.GetFunction("ChatPlugin", "GetEpisodeAnswer");
 
-			try
-			{
-				chatHistory.AddAssistantMessage($"Here are the top 5 podcast episodes relating to the question you asked {input}");
+			string episodeAnswer = (await kernel.RunAsync(input, getEpisodeAnswer)).GetValue<string>()!.Trim();
 
-				IReadOnlyList<IChatResult> completion = null;
+			chatHistory.AddAssistantMessage(episodeAnswer);
 
-				try
-				{
-					//hand the history to the chatmodel to get the response
-					completion = await chatCompletion.GetChatCompletionsAsync(chatHistory, chatRequestSettings);
-				}
-				catch (SKException ex)
-				{
-					Console.Write(ex.Message);
-				}
+			Console.WriteLine($"Got the following reply: {episodeAnswer}");
 
-				if (!completion.Any())
-					throw new SKException("No completion results returned from OpenAI.");
-
-				foreach (IChatResult result in completion)
-				{
-					// Add the completion result as an assistant message to the chat history.
-					ChatMessage message = await result.GetChatMessageAsync();
-					chatHistory.AddAssistantMessage(message.Content);
-
-					reply += Environment.NewLine + message.Content;
-				}
-
-
-			}
-			catch(SKException aiex)
-			{
-				// Reply with the error message if there is one
-				reply = $"OpenAI returned an error ({aiex.Message}). Please try again.";
-			}
-
-			Console.WriteLine($"Got the following reply: {reply}");
-
-
-			return reply;
+			//return the bot answer
+			return episodeAnswer;
 		}
 
 		[SKFunction, SKName(nameof(AskForClarificationAsync))]
@@ -153,22 +81,85 @@ namespace GaGSemanticMap.Skills
 			//return the clarification
 			return clarification;
 		}
-		
+
+		[SKFunction, SKName(nameof(GetMoreInformationAsync))]
+		public async Task<string> GetMoreInformationAsync(string input)
+		{
+			var getMoreInformation = kernel.Functions.GetFunction("ChatPlugin", "GetMoreInformation");
+
+			var getMoreInformationVariable = new ContextVariables
+			{
+				["input"] = input,
+				["history"] = TransformChatHistory()
+			};
+
+			string moreInformation = (await kernel.RunAsync(getMoreInformationVariable, getMoreInformation)).GetValue<string>()!.Trim();
+
+			//return the clarification
+			return moreInformation;
+		}
+
+		[SKFunction, SKName(nameof(GetEpisodeForQueue))]
+		public async Task<string> GetEpisodeForQueue(string input)
+		{
+			var getEpisode = kernel.Functions.GetFunction("ChatPlugin", "GetEpisode");
+
+			var getEpisodeVariable = new ContextVariables
+			{
+				["input"] = input,
+				["history"] = TransformChatHistory()
+			};
+
+			string episodeName = (await kernel.RunAsync(getEpisodeVariable, getEpisode)).GetValue<string>()!.Trim();
+
+			//return the episode name
+			return episodeName;
+		}
+
+		public async Task AddMessageToHistoryAsync(string message, AuthorRole role)
+		{
+			if(role == AuthorRole.Assistant)
+			{
+				chatHistory.AddAssistantMessage(message);
+			}
+			else if(role == AuthorRole.User)
+			{
+				chatHistory.AddUserMessage(message);
+			}
+
+			Console.WriteLine($"Added message to history: {message}");
+			
+		}
+
+		private string TransformChatHistory()
+		{
+			string history = "";
+			foreach(var chat in chatHistory)
+			{
+				if(chat.Role == AuthorRole.User)
+				{
+					history += "User: " + chat.Content;
+				}
+				else if(chat.Role == AuthorRole.Assistant)
+				{
+					history += "Bot: " + chat.Content;
+				}
+
+				history += "\n";
+			}
+
+			return history;
+		}
+
 		private void ResetChat()
 		{
 			if (chatHistory != null && chatHistory.Any())
 				chatHistory.Clear();
 
-			//overall chat
-			var prompt = "Check the answers and give back a numbered bullet point list with the 5 top results" +
-			"The structure of the bullet points should be the following: episode name (including the number of the podcast i.e. GAG303 etc.)" +
-			"followed by a short summary and a link to the episode with an emoji. The episode number and name should be in german, the short summary in english. " +
-			"make a linebreak between episode name, description and link" +
-			"Also be nice about it and sound a fun guy.";
-
-			chatHistory = chatCompletion.CreateNewChat(prompt);
+			chatHistory = chatCompletion.CreateNewChat();
 		}
 
+		
 	}
 
 

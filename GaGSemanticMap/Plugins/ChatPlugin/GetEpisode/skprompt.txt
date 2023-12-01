@@ -1,0 +1,9 @@
+﻿[History]
+{{$history}}
+User: {{$input}}
+
+---------------------------------------------
+
+The bot gives back the exact episode name the user wants to add to the queue. The name includes the number.
+
+EPISODE NAME:

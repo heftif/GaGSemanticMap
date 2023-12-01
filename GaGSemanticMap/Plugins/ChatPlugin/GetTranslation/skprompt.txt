@@ -1,0 +1,9 @@
+User: {{$input}}
+
+---------------------------------------------
+
+Summarise the main subject of the user input in one or two words. 
+Then translate the word to {{$language}}. 
+Return only the translated word(s).
+
+TRANSLATION:

@@ -15,4 +15,9 @@
     <PackageReference Include="Pgvector.EntityFrameworkCore" Version="0.2.0-rc.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Plugins\ChatPlugin\GetTranslation\" />
+    <Folder Include="Plugins\ChatPlugin\GetEpisodeAnswer\" />
+  </ItemGroup>
+
 </Project>

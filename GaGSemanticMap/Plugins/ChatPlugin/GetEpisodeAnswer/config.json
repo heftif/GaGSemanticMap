@@ -1,0 +1,20 @@
+{
+  "type": "completion",
+  "description": "Get correctly formatted episode answer",
+  "completion": {
+    "max_tokens": 800,
+    "temperature": 0.4,
+    "top_p": 0.0,
+    "presence_penalty": 0.0,
+    "frequency_penalty": 0.0
+  },
+  "input": {
+    "parameters": [
+      {
+        "name": "input",
+        "description": "The user's request.",
+        "defaultValue": ""
+      }
+    ]
+  }
+}

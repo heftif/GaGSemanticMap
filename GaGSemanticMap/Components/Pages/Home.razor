@@ -112,7 +112,9 @@
 			<ul>
 			@foreach(var q in queue)
 			{
-				<li>@q</li>
+				<li>
+						<a target="_blank" href="@GetEpisodeLink(q)">@q</a>
+				</li>
 			}
 			</ul>
 		</div>
@@ -136,6 +138,7 @@
 	private List<string> outputMessages = new List<string>();
 	private List<string> botChat = new List<string>();
 	private List<string> queue = new List<string>();
+	private Dictionary<string,string> episodeLinksDict = new Dictionary<string,string>();
 
 	private async Task FindEpisodes()
 	{
@@ -146,14 +149,34 @@
 			outputMessages.Add("User:");
 			outputMessages.Add($"{UserInput}");
 
-			var response =  await _kernelService.FindEpisodes(UserInput);
+			var input = UserInput;
 
-			outputMessages.Add("Bot:");
-			//split up the response and add 
-			foreach(var r in SplitResponse(response))
+			//clear the user input
+			UserInput = "";
+
+			var response =  await _kernelService.FindEpisodes(input);
+
+			if(response.StartsWith("AddToQueue"))
 			{
-				outputMessages.Add($"{r}");
+				var results = response.Split(",");
+
+				episodeLinksDict.Add(results[1], results[2]);
+
+				queue.Add(results[1]);
+
+				outputMessages.Add("Bot:");
+				outputMessages.Add("Added the episode to the queue!");
 			}
+			else
+			{
+				outputMessages.Add("Bot:");
+				//split up the response and add
+				foreach (var r in SplitResponse(response))
+				{
+					outputMessages.Add($"{r}");
+				}
+			}
+
 
 			Disabled = false;
 
@@ -188,6 +211,15 @@
 										.ToList();
 
 		return bulletPoints;
+	}
+
+	private string GetEpisodeLink(string episodeName)
+	{
+		string link;
+
+		episodeLinksDict.TryGetValue(episodeName, out link);
+
+		return link;
 	}
 
 	string TransformLinks(string text)

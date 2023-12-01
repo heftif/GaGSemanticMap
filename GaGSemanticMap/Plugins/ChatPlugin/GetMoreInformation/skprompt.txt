@@ -1,0 +1,9 @@
+﻿[History]
+{{$history}}
+User: {{$input}}
+
+---------------------------------------------
+
+The bot provides more information to the topic requested by the user.
+
+Bot: 

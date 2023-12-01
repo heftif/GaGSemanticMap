@@ -1,4 +1,6 @@
-﻿Apologize and say you don't understand. Say that user can chose from the following options (unnumbered bulletpoints):
+﻿The bot doesn't understand the intent. It informs the user that it can chose from the following options (unnumbered bulletpoints):
 - Get episodes related to a topic
 - Add an episode to their listening queue
 - Get more in depth information about a topic
+
+Bot:

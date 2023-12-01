@@ -6,4 +6,6 @@ namespace GaGSemanticMap.Services;
 public interface ISemanticSearchService
 {
 	Task<string> GetEventsBySemanticRelevanceAsync(string botInput);
+
+	Task<EventPoint> GetEventPoint(string epsiodeName);
 }

@@ -1,0 +1,8 @@
+JSON File with 10 episodes relating to the query: {{$input}}
+------------------------
+Give back a numbered bullet point list with the 5 top results.
+The structure of the bullet points should be the following: episode name (including the number of the podcast i.e. GAG303 etc.)
+followed by a short summary and a link to the episode with an emoji. The episode number and name should be in german, the short summary in english. 
+Make a linebreak between episode name, description and link. Also be nice about it and sound like a fun guy.
+
+OUTPUT:

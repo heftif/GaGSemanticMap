@@ -1,5 +1,7 @@
-﻿using GaGSemanticMap.Skills;
+﻿using GaGSemanticMap.Models;
+using GaGSemanticMap.Skills;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.AI.ChatCompletion;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -9,6 +11,8 @@ namespace GaGSemanticMap.Services
 	public class KernelService : IKernelService
 	{
 		private readonly IKernel? kernel;
+		private readonly ISemanticSearchService semanticSearchService;
+		private readonly IChatConversationFunction chatService;
 		private readonly IDictionary<string, ISKFunction> chatFunctions;
 		private readonly IDictionary<string, ISKFunction> semanticSearchFunctions;
 		private readonly IDictionary<string, ISKFunction> orchestrationFunctions;
@@ -16,6 +20,8 @@ namespace GaGSemanticMap.Services
 		public KernelService(IKernel kernel, IChatConversationFunction chatFunction, ISemanticSearchService semanticSearchService)
 		{
 			this.kernel = kernel;
+			this.semanticSearchService = semanticSearchService;
+			this.chatService = chatFunction;
 
 			if(kernel != null)
 			{
@@ -38,6 +44,8 @@ namespace GaGSemanticMap.Services
 			//now we could use a planner, which decides for the best pipeline itself
 			//this could be an upgrade for the next version
 			var action = intent.GetValue<string>();
+
+			Console.WriteLine($"Performing the following action: {action}");
 
 			switch (action)
 			{
@@ -77,12 +85,34 @@ namespace GaGSemanticMap.Services
 
 		private async Task<string> AddEpisodeToQueue(string input)
 		{
-			return "";
+			//I need to find out which episode(s) out of the context and then just add a simple function
+			var result = await kernel.RunAsync(input, chatFunctions[nameof(IChatConversationFunction.GetEpisodeForQueue)]);
+
+			var episodeName = result.GetValue<string>().Trim();
+
+			if(!string.IsNullOrEmpty(episodeName))
+			{
+				//find the corresponding episode from the eventpoints
+				var eventPoint = await semanticSearchService.GetEventPoint(episodeName);
+
+				if(eventPoint != null)
+				{
+					await chatService.AddMessageToHistoryAsync("Added the episode to the queue!", AuthorRole.Assistant);
+
+					return $"AddToQueue, {eventPoint.EpisodeName}, {eventPoint.EpsiodeLink}";
+				}
+			}
+			
+			//apologize and ask for clarification
+			return await AskForClarification();
 		}
 
 		private async Task<string> GetMoreInformation(string input)
 		{
-			return "";
+			//this maybe requires history, because the user could say: give me information about the first choice etc. 
+			var result = await kernel.RunAsync(input, chatFunctions[nameof(IChatConversationFunction.GetMoreInformationAsync)]);
+
+			return result.GetValue<string>();
 		}
 
 		private async Task<string> AskForClarification()
