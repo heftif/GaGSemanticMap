@@ -1,2 +1,2 @@
 # GaGSemanticMap
- .NET 8 Blazor Application with Azure OpenAI and Semantic Search of Data Points
+Main Application, see main read me for detailed instructions
