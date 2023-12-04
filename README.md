@@ -1,6 +1,6 @@
 # GaGSemanticMap
 .NET 8 Blazor Application using a chat bot based on Semantic Kernels for finding Podcast Episodes (Currently Configured: "Geschichten aus der Geschichte") semantically related to user input, getting more information about 
-certain topics and maintaining a listening queue. The Main Project is "GAGSemanticMap". "CreateDataEmbeddings" was used to create the initial episode embeddings and could be used to adapt the project to another podcast.
+certain topics and maintaining a listening queue. The Main Project is "GAGSemanticMap". "CreateDataEmbeddings" was used to create the initial episode embeddings and could be used to adapt the project to another podcast. This project was created for the "Hack-together" event from Microsoft, conducted for .NET 8 release.
 
 ## How it works
 Using a semantic kernel approach, the program decides, what the users intent is based on his inputs. It then decides to either:
