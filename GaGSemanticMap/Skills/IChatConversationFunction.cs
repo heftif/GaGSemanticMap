@@ -7,17 +7,17 @@ namespace GaGSemanticMap.Skills
 	public interface IChatConversationFunction
 	{
 		/// <summary>
-		/// Checks validity of the input
+		/// Translates input and condenses meaning
 		/// </summary>
 		public Task<string> TranslateInputAsync(string message, SKContext context);
 
 		/// <summary>
-		/// Evalute the response
+		/// Evaluate the response
 		/// </summary>
 		public Task<string> EvaluateResponseAsync(string message);
 
 		/// <summary>
-		/// AskForClarification
+		/// Ask for clarification if user input has not been fully understood
 		/// </summary>
 		public Task<string> AskForClarificationAsync();
 
@@ -32,7 +32,7 @@ namespace GaGSemanticMap.Skills
 		public Task<string> GetEpisodeForQueue(string input);
 
 		/// <summary>
-		/// add the bot message to the history
+		/// add the message to the chat history
 		/// </summary>
 		public Task AddMessageToHistoryAsync(string message, AuthorRole role);
 	}

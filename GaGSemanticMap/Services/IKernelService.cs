@@ -2,6 +2,9 @@
 {
 	public interface IKernelService
 	{
-		Task<string> FindEpisodes(string input);
+		/// <summary>
+		/// Process the user input and do the desired action
+		/// </summary>
+		Task<string> ProcessInput(string input);
 	}
 }

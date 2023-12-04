@@ -154,7 +154,7 @@
 			//clear the user input
 			UserInput = "";
 
-			var response =  await _kernelService.FindEpisodes(input);
+			var response =  await _kernelService.ProcessInput(input);
 
 			if(response.StartsWith("AddToQueue"))
 			{

@@ -11,6 +11,7 @@ using Microsoft.SemanticKernel.Plugins.Memory;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//initialise environment and variables
 Env.Load();
 
 string key = Environment.GetEnvironmentVariable("KEY");
@@ -18,45 +19,39 @@ string endPoint = Environment.GetEnvironmentVariable("ENDPOINT");
 string model = Environment.GetEnvironmentVariable("MODEL");
 string embeddingModel = Environment.GetEnvironmentVariable("EMBEDDING");
 
-//todo: implement a logger
-
-//add configs
-/*builder.Configuration.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", true, true)
-    .AddEnvironmentVariables()
-    .AddUserSecrets<Program>(); */
-
 // register services
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+//todo: implement a logger
 builder.Services.AddLogging();
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
-
+//get client
 var client = new OpenAIClient(new Uri(endPoint!), new AzureKeyCredential(key));
 
 //initiate kernel
 var kernelBuilder = new KernelBuilder();
 kernelBuilder.WithAzureOpenAIChatCompletionService(model, client);
-kernelBuilder.WithAzureOpenAITextEmbeddingGenerationService(embeddingModel, endPoint!, key);
+//kernelBuilder.WithAzureOpenAITextEmbeddingGenerationService(embeddingModel, endPoint!, key);
 IKernel kernel = kernelBuilder.Build();
 
-//configure plugins
+//configure plugins (folders mainly)
 var pluginsDirectory = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "plugins");
 kernel.ImportSemanticFunctionsFromDirectory(pluginsDirectory, "OrchestratorPlugin");
 kernel.ImportSemanticFunctionsFromDirectory(pluginsDirectory, "ChatPlugin");
 builder.Services.AddSingleton(kernel);
 
+//create memory for embeddings
 var memoryBuilder = new MemoryBuilder();
 memoryBuilder.WithAzureOpenAITextEmbeddingGenerationService(embeddingModel, endPoint!, key);
 memoryBuilder.WithMemoryStore(new VolatileMemoryStore());
 var memory = memoryBuilder.Build();
-
 builder.Services.AddSingleton(memory);
 
+//adding services
 builder.Services.AddSingleton<ISemanticSearchService, SemanticSearchService>();
 builder.Services.AddSingleton<IKernelService, KernelService>();
-builder.Services.AddSingleton<IOutputSkill, OutputSkill>();
 builder.Services.AddSingleton<IChatConversationFunction, ChatConversationFunction>();
 
 

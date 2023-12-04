@@ -39,31 +39,10 @@ public class SemanticSearchService : ISemanticSearchService
 		}
 
 		this.memory = memory;*/
-		
-		//TEST(collectionName).GetAwaiter().GetResult();
-
 	}
 
-	/*private async Task TEST(string collectionName)
-	{
-		//test
-		var questions = new[]
-		{
-			"what about things in london",
-			"are there events in asia",
-			"do you know things about vikings?"
-		};
-
-		foreach (var q in questions)
-		{
-			var responses = memory.SearchAsync(collectionName, q, limit: 5).ToBlockingEnumerable();
-
-			foreach(var response in responses)
-				Console.WriteLine(q + " " + response?.Metadata.Text);
-		}
-	}*/
-
-	public async Task<EventPoint> GetEventPoint(string episodeName)
+	//give back an event point that fits the episode description.
+	public async Task<EventPoint> GetEventPointAsync(string episodeName)
 	{
 		return eventPoints.Where(x => episodeName.Contains(x.EpisodeName, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
 	}
@@ -75,28 +54,14 @@ public class SemanticSearchService : ISemanticSearchService
 		// Create an embedding for the input search
 		var vector = await GetEmbeddingsAsync(botInput);
 
+		//calculate cosine distance of event to my given points
 		var eventsWithDistance = eventPoints
-				.Select(c => new { Item = c, Distance = GetCosineDistance(vector.ToArray(), c.Embedding.ToArray())})
+				.Select(c => new EventPointWithDistance
+				{	EventPoint = c, 
+					Distance = GetCosineDistance(vector.ToArray(), c.Embedding.ToArray())
+				})
 				.OrderBy(c => c.Distance)
 				.ToList();
-
-		//it should be this, but we can only do this with database backing, so needs to wait
-		/*var eventsWithDistance = eventPoints
-		        .Select(c => new { Item = c, Distance = c.Embedding.CosineDistance(vector) })
-		        .OrderBy(c => c.Distance)
-		        .ToList();*/
-
-		var maxDistance = eventsWithDistance.Select(x => x.Distance).Max();
-		var minDistance = eventsWithDistance.Select(x => x.Distance).Min();
-
-		//stretch events to range from 0 to 1, to make it easier to find a cutoff
-		var normalizedEvents = eventsWithDistance
-			.Select(c => new EventPointWithDistance{ 
-					EventPoint = c.Item, 
-					Distance =		c.Distance, 
-					NormDistance = NormalizeDistance(c.Distance, minDistance, maxDistance) 
-			})
-			.ToList();
 
 		//string assembly
 		string reply = "";
@@ -104,12 +69,12 @@ public class SemanticSearchService : ISemanticSearchService
 		//print the 20 closest items
 		for (int i = 0; i < 10; i++)
 		{
-			var e = normalizedEvents[i];
+			var e = eventsWithDistance[i];
 			Console.WriteLine($" {i}. Event: {e.EventPoint.EpisodeName}, Distance: {e.Distance}");
 			e.Rank = i;
 		}
 
-		reply = JSONHelper.ConvertToJson<EventPointWithDistance>(normalizedEvents.Take(5).ToList());
+		reply = JSONHelper.ConvertToJson<EventPointWithDistance>(eventsWithDistance.Take(5).ToList());
 
 		Console.WriteLine($"Finished with results from embedding");
 
@@ -117,6 +82,7 @@ public class SemanticSearchService : ISemanticSearchService
 
 	}
 
+	//get the embedding vector of the given input
 	private async Task<Vector> GetEmbeddingsAsync(string botInput)
 	{
 
@@ -146,12 +112,7 @@ public class SemanticSearchService : ISemanticSearchService
 
 	}
 
-	private double NormalizeDistance(double value, double min, double max)
-	{
-		//linearly extrapolate to range between 0 to 1
-		return (value- min) / (max - min);
-	}
-
+	//calculate cosine distance between two floats
 	private double GetCosineDistance(float[] V1, float[] V2)
 	{
 		int N = 0;

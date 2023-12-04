@@ -78,6 +78,7 @@ namespace GaGSemanticMap.Skills
 
 			string clarification = (await kernel.RunAsync(getClarification)).GetValue<string>()!.Trim();
 
+			chatHistory.AddAssistantMessage(clarification);
 			//return the clarification
 			return clarification;
 		}
@@ -95,6 +96,10 @@ namespace GaGSemanticMap.Skills
 
 			string moreInformation = (await kernel.RunAsync(getMoreInformationVariable, getMoreInformation)).GetValue<string>()!.Trim();
 
+			chatHistory.AddUserMessage(input);
+			Console.WriteLine("Retrieved more information");
+			chatHistory.AddAssistantMessage(moreInformation);
+
 			//return the clarification
 			return moreInformation;
 		}
@@ -102,6 +107,7 @@ namespace GaGSemanticMap.Skills
 		[SKFunction, SKName(nameof(GetEpisodeForQueue))]
 		public async Task<string> GetEpisodeForQueue(string input)
 		{
+			Console.WriteLine("Getting Episode from Context");
 			var getEpisode = kernel.Functions.GetFunction("ChatPlugin", "GetEpisode");
 
 			var getEpisodeVariable = new ContextVariables
@@ -112,6 +118,9 @@ namespace GaGSemanticMap.Skills
 
 			string episodeName = (await kernel.RunAsync(getEpisodeVariable, getEpisode)).GetValue<string>()!.Trim();
 
+			chatHistory.AddUserMessage(input);
+
+			Console.WriteLine($"Episode Name: {episodeName}");
 			//return the episode name
 			return episodeName;
 		}

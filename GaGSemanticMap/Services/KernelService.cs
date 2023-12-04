@@ -21,10 +21,11 @@ namespace GaGSemanticMap.Services
 		{
 			this.kernel = kernel;
 			this.semanticSearchService = semanticSearchService;
-			this.chatService = chatFunction;
+			chatService = chatFunction;
 
 			if(kernel != null)
 			{
+				//gather all the functions with SKAttribute from these interfaces
 				chatFunctions = kernel.ImportFunctions(chatFunction, "ChatPlugin");
 				semanticSearchFunctions = kernel.ImportFunctions(semanticSearchService);
 				orchestrationFunctions = kernel.ImportFunctions(new Orchestrator(kernel), "OrchestratorPlugin");
@@ -36,7 +37,7 @@ namespace GaGSemanticMap.Services
 			
 		}
 
-		public async Task<string> FindEpisodes(string input)
+		public async Task<string> ProcessInput(string input)
 		{
 			//get intent
 			var intent = await kernel.RunAsync(input, orchestrationFunctions[nameof(IOrchestrator.RouteRequestAsync)]);
@@ -60,13 +61,14 @@ namespace GaGSemanticMap.Services
 					return await GetMoreInformation(input);
 				//ask for clarification
 				case "?":
-					return await AskForClarification();
+					return await AskForClarification(input);
 				default:
 					return "no intent found";
 			}
 			
 		}
 
+		//search for episodes fitting the given user input
 		private async Task<string> SearchEpisodes(string input)
 		{
 			//create pipeLine
@@ -77,12 +79,15 @@ namespace GaGSemanticMap.Services
 					};
 
 			var result = await kernel.RunAsync(input, pipeline);
+
 			//reformulate the question and translate to german
 			var botResponse = result.GetValue<string>();
+
 			//ensure formatting
 			return EnsureFormatting(botResponse);
 		}
 
+		//add the episode to the listening queue
 		private async Task<string> AddEpisodeToQueue(string input)
 		{
 			//I need to find out which episode(s) out of the context and then just add a simple function
@@ -93,30 +98,49 @@ namespace GaGSemanticMap.Services
 			if(!string.IsNullOrEmpty(episodeName))
 			{
 				//find the corresponding episode from the eventpoints
-				var eventPoint = await semanticSearchService.GetEventPoint(episodeName);
+				var eventPoint = await semanticSearchService.GetEventPointAsync(episodeName);
 
 				if(eventPoint != null)
 				{
+					//return the epsiodename and link, add the entry to chat history
+					Console.WriteLine("Found corresponding eventPoint");
+
 					await chatService.AddMessageToHistoryAsync("Added the episode to the queue!", AuthorRole.Assistant);
 
 					return $"AddToQueue, {eventPoint.EpisodeName}, {eventPoint.EpsiodeLink}";
 				}
+				else
+				{
+					Console.WriteLine("Couldn't find corresponding event!");
+				}
+			}
+			else
+			{
+				Console.WriteLine("No corresponding epsiode found!");
 			}
 			
 			//apologize and ask for clarification
-			return await AskForClarification();
+			return await AskForClarification(input);
 		}
 
+		//gather more information about a topic
 		private async Task<string> GetMoreInformation(string input)
 		{
-			//this maybe requires history, because the user could say: give me information about the first choice etc. 
+			Console.WriteLine("Getting more information about the topic");
+		
 			var result = await kernel.RunAsync(input, chatFunctions[nameof(IChatConversationFunction.GetMoreInformationAsync)]);
 
 			return result.GetValue<string>();
 		}
 
-		private async Task<string> AskForClarification()
+		//ask the user for clarification
+		private async Task<string> AskForClarification(string input)
 		{
+			//write input to chathistory
+			await chatService.AddMessageToHistoryAsync(input, AuthorRole.User);
+
+			Console.WriteLine("Asking for clarification");
+
 			var result = await kernel.RunAsync(chatFunctions[nameof(IChatConversationFunction.AskForClarificationAsync)]);
 
 			return result.GetValue<string>();
