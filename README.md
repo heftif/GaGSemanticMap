@@ -22,6 +22,8 @@ Questions could for example look something like this:
 - Can you add Episode GAG234 to my listening queue?
 - Add all items to listening queue
 
+For a demo, see here: https://www.youtube.com/watch?v=hyoEp0OfEq4
+
 Very rarely, there might be an issue with displaying the answer. In this case, restart the application and reformulate the question to get a different result and a proper display.
 
 ### Adaptation for different podcasts
