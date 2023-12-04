@@ -175,9 +175,14 @@
 				{
 					var results = ep.Split(",");
 
-					episodeLinksDict.Add(results[1], results[2]);
+					string value;
+					if(!episodeLinksDict.TryGetValue(results[1], out value))
+					{
+						episodeLinksDict.Add(results[1], results[2]);
 
-					queue.Add(results[1]);
+						queue.Add(results[1]);
+					}
+
 				}
 
 				outputMessages.Add(new OutputMessage("Bot:", "Added the episode(s) to the queue!"));
