@@ -20,7 +20,6 @@
 
 	<ul>
 		<li class="list">Adding a different CSV source (with calculated embeddings) </li>
-		<li>Adjusting the prompt for the Open AI Chat to be related to your podcast topic</li>
 	</ul>
 
 	<p class="stats-row"> Enter a command related to a topic to get the top 5 recommended episodes. For example:</p>
@@ -67,11 +66,11 @@
 				<!-- ensure that UserInput is updated before onkeyup is triggered to get the text-->
 				<input @bind-value="UserInput" @bind-value:event="oninput" @onkeyup="OnEnter" style="width:100%;height:30px;"/><br />
 
-				<button class="btn btn-primary" @onclick="FindEpisodes" tabindex="0" style="margin-top:5px; margin-bottom:5px" disabled="@Disabled">Go!</button>
+				<button class="btn btn-primary" @onclick="ProcessInput" tabindex="0" style="margin-top:5px; margin-bottom:5px" disabled="@Disabled">Go!</button>
 
 				<div class="chatpanel">
 					<p style="text-align:right"><sup>Chat</sup></p>
-					<!-- pre keeps formatting -->
+					<!-- mainly differentiate for nice formatting-->
 					@for(int i = 0; i< outputMessages.Count(); i++)
 					{
 						var outputMessage = outputMessages[i];
@@ -82,6 +81,7 @@
 						}
 						else
 						{
+							<!-- bullet point episode formatting -->
 							if (IsBulletPointFormat(outputMessage) && i+2 < outputMessages.Count())
 							{
 								<ul style="list-style-type: none; padding: 0;">
@@ -107,6 +107,7 @@
 			</div>
 		</div>
 
+		<!-- The listening queue-->
 		<div class="listening-queue">
 			<h4>Listening Queue:</h4>
 			<ul>
@@ -133,6 +134,7 @@
 	void OpenNav() => width = 450;
 	void CloseNav() => width = 0;
 
+
 	public string? UserInput { get; set; }
 	public bool Disabled { get; set; }
 	private List<string> outputMessages = new List<string>();
@@ -140,10 +142,11 @@
 	private List<string> queue = new List<string>();
 	private Dictionary<string,string> episodeLinksDict = new Dictionary<string,string>();
 
-	private async Task FindEpisodes()
+	private async Task ProcessInput()
 	{
 		if (!string.IsNullOrEmpty(UserInput))
 		{
+			//disable send button, so user doesn't submit again when processing
 			Disabled = true;
 
 			outputMessages.Add("User:");
@@ -154,8 +157,10 @@
 			//clear the user input
 			UserInput = "";
 
+			//process the response
 			var response =  await _kernelService.ProcessInput(input);
 
+			//add to listening queue
 			if(response.StartsWith("AddToQueue"))
 			{
 				var results = response.Split(",");
@@ -167,6 +172,7 @@
 				outputMessages.Add("Bot:");
 				outputMessages.Add("Added the episode to the queue!");
 			}
+			//usual response pattern
 			else
 			{
 				outputMessages.Add("Bot:");
@@ -177,7 +183,7 @@
 				}
 			}
 
-
+			//enable button again
 			Disabled = false;
 
 		}
@@ -187,10 +193,11 @@
 	{
 		if (e.Code == "Enter" || e.Code == "NumpadEnter")
 		{
-			await FindEpisodes();
+			await ProcessInput();
 		}
 	}
 
+	#region formatting
 	bool IsBulletPointFormat(string text)
 	{
 		// Adjust the logic based on your criteria
@@ -263,6 +270,7 @@
 		// If no match is found, return an empty string or handle it as needed
 		return string.Empty;
 	}
+	#endregion
 
 
 }
