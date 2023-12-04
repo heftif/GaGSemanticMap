@@ -51,13 +51,13 @@ namespace GaGSemanticMap.Services
 			switch (action)
 			{
 				//search corresponding episodes
-				case "search":
+				case "findEpisodes":
 					return await SearchEpisodes(input);
-				//add epsiode to listen list
+				//add one epsiode to listen list
 				case "add":
 					return await AddEpisodeToQueue(input);
 				//respond with more in depth knowledge about the input
-				case "deepen":
+				case "moreInformation":
 					return await GetMoreInformation(input);
 				//ask for clarification
 				case "?":
@@ -98,21 +98,31 @@ namespace GaGSemanticMap.Services
 			if(!string.IsNullOrEmpty(episodeName))
 			{
 				//find the corresponding episode from the eventpoints
-				var eventPoint = await semanticSearchService.GetEventPointAsync(episodeName);
+				var eventPoints = await semanticSearchService.GetEventPointsAsync(episodeName);
 
-				if(eventPoint != null)
+				if(eventPoints != null && eventPoints.Any()) 
 				{
-					//return the epsiodename and link, add the entry to chat history
-					Console.WriteLine("Found corresponding eventPoint");
+					var reply = "";
 
-					await chatService.AddMessageToHistoryAsync("Added the episode to the queue!", AuthorRole.Assistant);
+					foreach (var eventPoint in eventPoints)
+					{
+						
+						//return the epsiodename and link, add the entry to chat history
+						Console.WriteLine("Found corresponding eventPoint");
 
-					return $"AddToQueue, {eventPoint.EpisodeName}, {eventPoint.EpsiodeLink}";
+						await chatService.AddMessageToHistoryAsync("Added the episode to the queue!", AuthorRole.Assistant);
+
+						reply += $"AddToQueue, {eventPoint.EpisodeName}, {eventPoint.EpsiodeLink} \n";
+					}
+
+					return reply.Substring(0, reply.Length-2);
 				}
 				else
 				{
 					Console.WriteLine("Couldn't find corresponding event!");
 				}
+
+				
 			}
 			else
 			{

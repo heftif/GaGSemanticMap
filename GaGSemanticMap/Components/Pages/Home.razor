@@ -3,6 +3,13 @@
 @rendermode InteractiveServer
 @inject ISemanticSearchService _semanticService
 @inject IKernelService _kernelService;
+@using System.Collections.ObjectModel;
+
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+
+
 
 <PageTitle>GaG Search Engine</PageTitle>
 
@@ -51,7 +58,7 @@
 	<!--for sidebar-->
 	@if (width == 0)
 	{
-		<button class="openbtn" @onclick="OpenNav">&#9776; Open Description</button>
+		<button class="openbtn" @onclick="OpenNav">&#9776; Open Instructions</button>
 	}
 
 	<div class="grid-container">
@@ -61,14 +68,15 @@
 			</p>
 
 			<div class="chatbox">
-				<h3>What are you interested in?</h3>
+				<h3>What kind of episodes are you interested in?</h3>
 
 				<!-- ensure that UserInput is updated before onkeyup is triggered to get the text-->
 				<input @bind-value="UserInput" @bind-value:event="oninput" @onkeyup="OnEnter" style="width:100%;height:30px;"/><br />
 
 				<button class="btn btn-primary" @onclick="ProcessInput" tabindex="0" style="margin-top:5px; margin-bottom:5px" disabled="@Disabled">Go!</button>
+				 
+				<div class="chatpanel" id="chat_panel">
 
-				<div class="chatpanel">
 					<p style="text-align:right"><sup>Chat</sup></p>
 					<!-- mainly differentiate for nice formatting-->
 					@for(int i = 0; i< outputMessages.Count(); i++)
@@ -102,6 +110,7 @@
 								<p>@outputMessage</p>
 							}
 						}
+
 					}
 				</div>
 			</div>
@@ -118,14 +127,13 @@
 				</li>
 			}
 			</ul>
+			<button class="btn btn-primary" @onclick="ScrollToEnd" tabindex="0" style="margin-top:5px; margin-bottom:5px">ScrollTest</button>
 		</div>
 	</div>
 </div>
 
 
-
 @code{
-
 
 	//sidebar navigation
 	int width = 0;
@@ -134,10 +142,9 @@
 	void OpenNav() => width = 450;
 	void CloseNav() => width = 0;
 
-
 	public string? UserInput { get; set; }
 	public bool Disabled { get; set; }
-	private List<string> outputMessages = new List<string>();
+	private ObservableCollection<string> outputMessages = new ObservableCollection<string>();
 	private List<string> botChat = new List<string>();
 	private List<string> queue = new List<string>();
 	private Dictionary<string,string> episodeLinksDict = new Dictionary<string,string>();
@@ -163,14 +170,19 @@
 			//add to listening queue
 			if(response.StartsWith("AddToQueue"))
 			{
-				var results = response.Split(",");
+				var episodes = response.Split("\n");
 
-				episodeLinksDict.Add(results[1], results[2]);
+				foreach (var ep in episodes)
+				{
+					var results = ep.Split(",");
 
-				queue.Add(results[1]);
+					episodeLinksDict.Add(results[1], results[2]);
+
+					queue.Add(results[1]);
+				}
 
 				outputMessages.Add("Bot:");
-				outputMessages.Add("Added the episode to the queue!");
+				outputMessages.Add("Added the episode(s) to the queue!");
 			}
 			//usual response pattern
 			else
@@ -183,10 +195,22 @@
 				}
 			}
 
+			await ScrollToEnd();
 			//enable button again
 			Disabled = false;
 
 		}
+	}
+
+	private async Task ScrollToEnd()
+	{
+		await InvokeAsync(() =>
+				{
+
+					StateHasChanged();
+				});
+	
+		await JS.InvokeVoidAsync("scrollToEnd");
 	}
 
 	private async Task OnEnter(KeyboardEventArgs e)
@@ -196,6 +220,7 @@
 			await ProcessInput();
 		}
 	}
+
 
 	#region formatting
 	bool IsBulletPointFormat(string text)

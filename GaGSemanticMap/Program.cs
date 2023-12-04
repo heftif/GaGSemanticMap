@@ -9,6 +9,7 @@ using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Plugins.Memory;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 //initialise environment and variables

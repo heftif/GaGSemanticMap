@@ -14,4 +14,9 @@ public interface ISemanticSearchService
 	/// Get corresponding event point from epsiodename input
 	/// </summary>
 	Task<EventPoint> GetEventPointAsync(string epsiodeName);
+
+	/// <summary>
+	/// Get corresponding event points from epsiodename input
+	/// </summary>
+	Task<List<EventPoint>> GetEventPointsAsync(string epsiodeName);
 }

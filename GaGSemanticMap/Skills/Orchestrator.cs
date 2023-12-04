@@ -21,7 +21,7 @@ namespace GaGSemanticMap.Skills
 			var getIntentVariables = new ContextVariables
 			{
 				["input"] = input,
-				["options"] = "search, add, deepen, ?" //option from which to choose from
+				["options"] = "findEpisodes, add, moreInformation, ?" //option from which to choose from
 			};
 
 			string intent = (await kernel.RunAsync(getIntentVariables, getIntent)).GetValue<string>()!.Trim();

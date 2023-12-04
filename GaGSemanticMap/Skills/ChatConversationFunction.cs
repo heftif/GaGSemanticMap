@@ -2,8 +2,6 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.AI.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
-using Microsoft.SemanticKernel.Diagnostics;
-using Json.Schema.Generation.Intents;
 
 
 namespace GaGSemanticMap.Skills
@@ -127,6 +125,9 @@ namespace GaGSemanticMap.Skills
 
 		public async Task AddMessageToHistoryAsync(string message, AuthorRole role)
 		{
+			if (chatHistory == null)
+				StartChat();
+
 			if(role == AuthorRole.Assistant)
 			{
 				chatHistory.AddAssistantMessage(message);
@@ -143,18 +144,26 @@ namespace GaGSemanticMap.Skills
 		private string TransformChatHistory()
 		{
 			string history = "";
-			foreach(var chat in chatHistory)
+			
+			if (chatHistory != null && chatHistory.Count > 0)
 			{
-				if(chat.Role == AuthorRole.User)
+				foreach (var chat in chatHistory)
 				{
-					history += "User: " + chat.Content;
-				}
-				else if(chat.Role == AuthorRole.Assistant)
-				{
-					history += "Bot: " + chat.Content;
-				}
+					if (chat.Role == AuthorRole.User)
+					{
+						history += "User: " + chat.Content;
+					}
+					else if (chat.Role == AuthorRole.Assistant)
+					{
+						history += "Bot: " + chat.Content;
+					}
 
-				history += "\n";
+					history += "\n";
+				}
+			}
+			else
+			{
+				StartChat();
 			}
 
 			return history;
@@ -165,11 +174,12 @@ namespace GaGSemanticMap.Skills
 			if (chatHistory != null && chatHistory.Any())
 				chatHistory.Clear();
 
-			chatHistory = chatCompletion.CreateNewChat();
+			StartChat();
 		}
 
-		
+		private void StartChat()
+		{
+			chatHistory = chatCompletion.CreateNewChat();
+		}
 	}
-
-
 }

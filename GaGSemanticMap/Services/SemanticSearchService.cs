@@ -47,6 +47,12 @@ public class SemanticSearchService : ISemanticSearchService
 		return eventPoints.Where(x => episodeName.Contains(x.EpisodeName, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
 	}
 
+	//give back an event point that fits the episode description.
+	public async Task<List<EventPoint>> GetEventPointsAsync(string episodeName)
+	{
+		return eventPoints.Where(x => episodeName.Contains(x.EpisodeName, StringComparison.OrdinalIgnoreCase)).ToList();
+	}
+
 	//in a next step, this should be changed to move the data I read into the semantic memory and than retrieve from there.
 	[SKFunction, SKName(nameof(GetEventsBySemanticRelevanceAsync))]
 	public async Task<string> GetEventsBySemanticRelevanceAsync(string botInput)
