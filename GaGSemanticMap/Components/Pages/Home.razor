@@ -79,35 +79,36 @@
 
 					<p style="text-align:right"><sup>Chat</sup></p>
 					<!-- mainly differentiate for nice formatting-->
-					@for(int i = 0; i< outputMessages.Count(); i++)
+					@for(int i = 0; i < outputMessages.Count(); i++)
 					{
 						var outputMessage = outputMessages[i];
 
-						if (outputMessage.StartsWith("User") || (outputMessage.StartsWith("Bot")))
+						if (!string.IsNullOrEmpty(outputMessage.From))
 						{
-							<p style="margin-bottom: 2px"><strong>@outputMessage</strong></p>
+							<p>
+								<span style="margin-bottom: 2px"><strong>@outputMessage.From</strong></span>
+								<span>@outputMessage.Text</span>
+							</p>
 						}
 						else
 						{
 							<!-- bullet point episode formatting -->
-							if (IsBulletPointFormat(outputMessage) && i+2 < outputMessages.Count())
+							if (outputMessage.IsBulletPoint)
 							{
 								<ul style="list-style-type: none; padding: 0;">
 									<!--split it up even more-->
-									<li><strong>@outputMessages[i]</strong></li>
+									<li><strong>@outputMessage.BulletPointString</strong></li>
 									<ul>
 										<li style="margin-bottom: 10px;">
-											<span>@outputMessages[i + 1]</span>
-											<a target="_blank" href="@TransformUrl(outputMessages[i + 2])">@TransformText(outputMessages[i + 2])</a>
+											<span>@outputMessage.Description</span>
+											<a target="_blank" href="@TransformUrl(outputMessage.Link)">@TransformText(outputMessage.Link)</a>
 										</li>
 									</ul>
 								</ul>
-
-								i += 2;
 							}
 							else
 							{
-								<p>@outputMessage</p>
+								<p>@outputMessage.Text</p>
 							}
 						}
 
@@ -127,7 +128,6 @@
 				</li>
 			}
 			</ul>
-			<button class="btn btn-primary" @onclick="ScrollToEnd" tabindex="0" style="margin-top:5px; margin-bottom:5px">ScrollTest</button>
 		</div>
 	</div>
 </div>
@@ -144,7 +144,7 @@
 
 	public string? UserInput { get; set; }
 	public bool Disabled { get; set; }
-	private ObservableCollection<string> outputMessages = new ObservableCollection<string>();
+	private ObservableCollection<OutputMessage> outputMessages = new ObservableCollection<OutputMessage>();
 	private List<string> botChat = new List<string>();
 	private List<string> queue = new List<string>();
 	private Dictionary<string,string> episodeLinksDict = new Dictionary<string,string>();
@@ -156,8 +156,7 @@
 			//disable send button, so user doesn't submit again when processing
 			Disabled = true;
 
-			outputMessages.Add("User:");
-			outputMessages.Add($"{UserInput}");
+			outputMessages.Add(new OutputMessage("User:", UserInput));
 
 			var input = UserInput;
 
@@ -181,17 +180,46 @@
 					queue.Add(results[1]);
 				}
 
-				outputMessages.Add("Bot:");
-				outputMessages.Add("Added the episode(s) to the queue!");
+				outputMessages.Add(new OutputMessage("Bot:", "Added the episode(s) to the queue!"));
 			}
 			//usual response pattern
 			else
 			{
-				outputMessages.Add("Bot:");
+				bool botFirstMessage = true;
+
+				var splitResponses = SplitResponse(response);
+
 				//split up the response and add
-				foreach (var r in SplitResponse(response))
+				for (int i = 0; i < splitResponses.Count(); i++)
 				{
-					outputMessages.Add($"{r}");
+					var r = splitResponses[i];
+
+					if(!IsBulletPointFormat(r) && botFirstMessage)
+					{
+						outputMessages.Add(new OutputMessage("Bot:", r));
+						botFirstMessage = false;
+					}
+					else if (!IsBulletPointFormat(r) && !botFirstMessage)
+					{
+						outputMessages.Add(new OutputMessage(string.Empty, r));
+					}
+					else if (IsBulletPointFormat(r))
+					{
+						i++;
+
+						var description = "";
+						while(!IsLink(splitResponses[i]))
+						{
+							description += splitResponses[i];
+							i++;
+						}
+
+						var link = splitResponses[i];
+
+						outputMessages.Add(new OutputMessage(r, description, link));
+
+					}
+
 				}
 			}
 
@@ -209,7 +237,7 @@
 
 					StateHasChanged();
 				});
-	
+
 		await JS.InvokeVoidAsync("scrollToEnd");
 	}
 
@@ -231,6 +259,11 @@
 				text.TrimStart().StartsWith("3.") ||
 				text.TrimStart().StartsWith("4.") ||
 				text.TrimStart().StartsWith("5.");
+	}
+
+	bool IsLink(string text)
+	{
+		return text.StartsWith("[");
 	}
 
 	List<string> SplitResponse(string text)
